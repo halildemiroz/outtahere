@@ -30,20 +30,20 @@ void playerRender(){
     
     // Update animation frame at regular intervals
     if (currentTime > lastFrameTime + FRAME_DELAY) {
-        // Advance frame and wrap around based on current animation
-        if (player.state == IDLE) {
-            player.currentFrame = (player.currentFrame + 1) % player.idleFrames;
-        } else { // RUN state
-            player.currentFrame = (player.currentFrame + 1) % player.runFrames;
+
+        switch (player.state){
+            case IDLE:
+                player.currentFrame = (player.currentFrame + 1) % player.idleFrames;
+                break;
+            case RUN:
+                player.currentFrame = (player.currentFrame + 1) % player.runFrames;
+                break;
         }
         lastFrameTime = currentTime;
         
-        // ONLY update the source rectangle X for animation frames
         player.src.x = player.currentFrame * player.src.w;
-        // DO NOT modify player.dest.x here
     }
     
-    // Render the appropriate texture based on state
     switch (player.state) {
         case IDLE:
             if (player.idleTexture) {
