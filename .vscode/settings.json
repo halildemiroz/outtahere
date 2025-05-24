@@ -1,0 +1,6 @@
+{
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+  "files.associations": {
+    "player.h": "c"
+  }
+}
