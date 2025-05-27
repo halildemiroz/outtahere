@@ -2,12 +2,15 @@
 #include "../include/tile.h"
 #include "../include/map.h"
 #include "../include/player.h"
+#include "SDL2/SDL_events.h"
+#include "SDL2/SDL_keycode.h"
 #include "SDL2/SDL_render.h"
 
 #define FPS 60
 #define FRAME_DELAY (1000/FPS)
 
 Game game;
+Player player;
 
 void gameRun(const char* title, int w, int h){
     gameInit(title,w,h);
@@ -17,8 +20,8 @@ void gameRun(const char* title, int w, int h){
     while(game.isRunning){
         frameStart = SDL_GetTicks();
         
+        gameUpdate();
         gameRender();
-        //gameUpdate();
         gameHandleEvent();
 
         frameTime = SDL_GetTicks() - frameStart;
@@ -47,12 +50,16 @@ void gameInit(const char *title, int width, int height) {
 
 void gameRender(){
     SDL_RenderClear(game.renderer);
+
     mapRender();
     playerRender();
+    
     SDL_RenderPresent(game.renderer);
 }
 
-void gameUpdate();
+void gameUpdate(){
+    playerMove();
+}
 
 void gameHandleEvent(){
     SDL_Event event;

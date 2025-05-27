@@ -3,6 +3,12 @@
 #include "game.h"
 
 #define G 10.0f
+#define SPEED 1
+
+typedef enum{
+    FRIGHT = 0,
+    FLEFT
+} Direction;
 
 typedef enum{
     IDLE = 0,
@@ -19,6 +25,8 @@ typedef struct {
     int idleFrames, runFrames, currentFrame;
     int health;
     float vx, vy, a;
+
+    Direction direction;
     State state;
 } Player;
 extern Player player;
@@ -26,6 +34,7 @@ extern Player player;
 void playerInit();
 void playerRender();
 void playerMove();
+void playerAnimate(int frame);
 
 bool playerCanMove();
 
