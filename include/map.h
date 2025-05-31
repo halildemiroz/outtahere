@@ -1,8 +1,5 @@
 #pragma once
 #include <tmx.h>
-#include <stdio.h>
-#include "game.h"
-#include "tile.h"
 
 typedef struct {
     tmx_layer* layer;

@@ -1,9 +1,12 @@
 #pragma once
 
 #include "game.h"
+#include "tile.h"
+#include "tmx.h"
 
-#define G 10.0f
-#define SPEED 1
+#define G 1
+#define JUMP_FORCE -12
+#define TERMINAL_VELOCITY 10
 
 typedef enum{
     FRIGHT = 0,
@@ -20,10 +23,13 @@ typedef struct {
     SDL_Surface* runSurface;
     SDL_Texture* idleTexture;
     SDL_Texture* runTexture;
-    SDL_Rect src, dest;
+    SDL_Rect src, dest, collision;
+
+    bool isGrounded;
 
     int idleFrames, runFrames, currentFrame;
     int health;
+
     float vx, vy, a;
 
     Direction direction;
@@ -31,10 +37,13 @@ typedef struct {
 } Player;
 extern Player player;
 
+
 void playerInit();
 void playerRender();
-void playerMove();
+void playerMove(tmx_map* mapData);
 void playerAnimate(int frame);
+void playerFree();
 
-bool playerCanMove();
+bool playerCheckBottomCollision(tmx_map* mapData);
+bool playerCheckWindowBorderCollision();
 

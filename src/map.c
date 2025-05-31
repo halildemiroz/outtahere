@@ -1,5 +1,6 @@
 #include "../include/map.h"
-#include "SDL2/SDL_render.h"
+#include "../include/game.h"
+#include "../include/tile.h"
 #include <stdio.h>
 
 Map map;
@@ -8,6 +9,7 @@ void mapLoad(const char* path){
     map.map = tmx_load(path);
     if (!map.map)
         fprintf(stderr, "Failed to load TMX map: %s\n", tmx_strerr());
+    game.map = map;
 }
 
 void layerRender(tmx_map *map, tmx_layer *layer){
@@ -52,7 +54,6 @@ void mapRender(){
        layerRender(map.map, map.layer);
        map.layer = map.layer->next;
     }
-    //SDL_RenderPresent(game.renderer);
     SDL_Delay(16);
 }
 

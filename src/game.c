@@ -1,16 +1,13 @@
 #include "../include/game.h"
 #include "../include/tile.h"
-#include "../include/map.h"
 #include "../include/player.h"
 #include "SDL2/SDL_events.h"
 #include "SDL2/SDL_keycode.h"
-#include "SDL2/SDL_render.h"
 
 #define FPS 60
 #define FRAME_DELAY (1000/FPS)
 
 Game game;
-Player player;
 
 void gameRun(const char* title, int w, int h){
     gameInit(title,w,h);
@@ -58,7 +55,7 @@ void gameRender(){
 }
 
 void gameUpdate(){
-    playerMove();
+    playerMove(game.map.map);
 }
 
 void gameHandleEvent(){
@@ -68,6 +65,13 @@ void gameHandleEvent(){
             case SDL_QUIT:
                 game.isRunning = false;
                 break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                    case SDLK_ESCAPE:
+                        game.isRunning = false;
+                        break;
+                }
+                break;
         }
     }
 }
@@ -75,6 +79,8 @@ void gameHandleEvent(){
 void gameFree(){
     SDL_DestroyRenderer(game.renderer);
     SDL_DestroyWindow(game.window);
+    mapFree();
+    playerFree();
     SDL_Quit();
 }
 
