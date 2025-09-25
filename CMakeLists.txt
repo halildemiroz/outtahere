@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(MyGame LANGUAGES C CXX)
+project(outtahere C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include_directories(./include)
 
@@ -55,7 +53,7 @@ endif()
 # -------------------------
 # Your game executable
 # -------------------------
-add_executable(my_game
+add_executable(outtahere
     src/main.c
 	src/game.c
 	src/player.c
@@ -64,13 +62,13 @@ add_executable(my_game
 )
 
 # Link SDL2
-target_include_directories(my_game PRIVATE ${SDL2_INCLUDE_DIRS})
-target_link_libraries(my_game PRIVATE ${SDL2_LIBRARIES})
-target_compile_options(my_game PRIVATE ${SDL2_CFLAGS_OTHER})
+target_include_directories(outtahere PRIVATE ${SDL2_INCLUDE_DIRS})
+target_link_libraries(outtahere PRIVATE ${SDL2_LIBRARIES})
+target_compile_options(outtahere PRIVATE ${SDL2_CFLAGS_OTHER})
 
 # Link libtmx
 if(TARGET tmx)
-    target_link_libraries(my_game PRIVATE tmx)
+    target_link_libraries(outtahere PRIVATE tmx)
 endif()
 # Tell libtmx where LibXml2 is
 set(LIBXML2_INCLUDE_DIR ${libxml2_SOURCE_DIR}/include)
