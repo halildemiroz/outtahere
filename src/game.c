@@ -5,32 +5,40 @@
 
 int gameInit(Game* game, const char* title){
 	// Check if SDL initialized
-	if(SDL_Init(SDL_INIT_EVERYTHING)){
-		printf("SDL could not initialized\n");
+	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)){
+		printf("SDL could not initialized: %s\n", SDL_GetError());
 		return -1;
 	}
 
 	// Check if window created
-	game->window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	game->window = SDL_CreateWindow(title, 100, 100, SCREEN_WIDTH, SCREEN_HEIGHT, 
+		SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 	if(!game->window){
 		fprintf(stderr, "Window could not be created! SDL_Error: %s\n", SDL_GetError());
 		return -1;
 	}
 	
+	// Try to raise/focus the window
+	SDL_RaiseWindow(game->window);
+	SDL_SetWindowTitle(game->window, title);
+	
 	// Check if renderer created
-	game->renderer = SDL_CreateRenderer(game->window, -1,SDL_RENDERER_ACCELERATED);
+	game->renderer = SDL_CreateRenderer(game->window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	if(!game->renderer){
-		printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
-		return -1;
-	}
+		// Try software renderer as fallback
+		game->renderer = SDL_CreateRenderer(game->window, -1, SDL_RENDERER_SOFTWARE);
+		if(!game->renderer){
+			printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+			return -1;
+		}
 
 	// OTHER INITIALIZATIONS HERE
 	
 	// --------------------------
 	
-	// If everyting is initialized
+	}
 	game->running = true;
-	printf("Game initialized");
+	printf("Game initialized\n");
 	return 0;
 }
 
@@ -55,7 +63,9 @@ void gameHandleEvent(Game* game){
 void gameUpdate(Game* game){}
 
 void gameRender(Game *game){
-	SDL_SetRenderDrawColor(game->renderer, 255, 255, 255, 255);
+	int r,g,b;
+	r = 255; g = 255; b = 255;
+	SDL_SetRenderDrawColor(game->renderer, r, g, b, 255);
 	SDL_RenderClear(game->renderer);
 
 	// RENDER HERE
