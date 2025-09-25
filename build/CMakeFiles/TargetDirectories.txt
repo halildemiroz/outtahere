@@ -1,0 +1,3 @@
+/home/runner/work/outtahere/outtahere/build/CMakeFiles/outtahere.dir
+/home/runner/work/outtahere/outtahere/build/CMakeFiles/edit_cache.dir
+/home/runner/work/outtahere/outtahere/build/CMakeFiles/rebuild_cache.dir
