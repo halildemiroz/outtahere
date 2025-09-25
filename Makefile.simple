@@ -1,0 +1,39 @@
+# Simple Makefile for Outta Here (alternative to CMake)
+# Usage: make -f Makefile.simple
+
+CC = gcc
+CFLAGS = -std=c99 -Wall -Wextra -Iinclude
+LIBS = -lSDL2 -lSDL2_image -lm
+
+# Add SDL2 flags
+CFLAGS += $(shell pkg-config --cflags sdl2 SDL2_image 2>/dev/null)
+LIBS += $(shell pkg-config --libs sdl2 SDL2_image 2>/dev/null)
+
+# Source files
+SRCDIR = src
+SOURCES = $(SRCDIR)/main.c $(SRCDIR)/game.c $(SRCDIR)/player.c $(SRCDIR)/physics.c $(SRCDIR)/tilemap.c
+OBJECTS = $(SOURCES:.c=.o)
+TARGET = outtahere
+
+# Default target
+all: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $(TARGET) $(LIBS)
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJECTS) $(TARGET) test_basic
+
+test: test_basic
+	./test_basic
+
+test_basic: test_basic.c src/physics.c
+	$(CC) $(CFLAGS) test_basic.c src/physics.c -o test_basic $(LIBS)
+
+install-deps:
+	./install_deps.sh
+
+.PHONY: all clean test install-deps

@@ -61,3 +61,6 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
+
+# Test binaries
+test_basic
