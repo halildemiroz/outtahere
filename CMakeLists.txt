@@ -19,6 +19,7 @@ include_directories(${SDL2_INCLUDE_DIRS})
 set(SOURCES
     src/main.c
     src/tilemap.c
+    src/tmx.c
 )
 
 # Create executable

@@ -7,9 +7,8 @@ typedef struct tmx_map {
     int dummy;
 } tmx_map;
 
-// This function is missing from the library - this will cause the compilation error
-// void tmx_set_error_handler(void (*handler)(const char *));
-
+// Function declarations
+void tmx_set_error_handler(void (*handler)(const char *));
 tmx_map* tmx_load(const char *filename);
 void tmx_map_free(tmx_map *map);
 

@@ -1,1 +1,0 @@
-/usr/bin/cc -Wl,--dependency-file=CMakeFiles/outtahere.dir/link.d CMakeFiles/outtahere.dir/src/main.c.o CMakeFiles/outtahere.dir/src/tilemap.c.o -o outtahere  -lSDL2
