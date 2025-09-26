@@ -91,6 +91,42 @@ else()
 endif()
 
 # -------------------------
+# SDL2_image
+# -------------------------
+if(WIN32)
+    # On Windows, try to find SDL2_image using find_package first
+    find_package(SDL2_image QUIET)
+    if(NOT SDL2_image_FOUND)
+        # Fallback to FetchContent for Windows
+        message(STATUS "SDL2_image not found on Windows, fetching...")
+        
+        FetchContent_Declare(
+            SDL2_image
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
+            GIT_TAG release-2.8.2
+        )
+        FetchContent_MakeAvailable(SDL2_image)
+        set(SDL2_IMAGE_LIBRARIES SDL2_image::SDL2_image)
+        set(SDL2_IMAGE_INCLUDE_DIRS "")
+    endif()
+else()
+    # On Unix-like systems, use pkg-config
+    pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
+    if(NOT SDL2_IMAGE_FOUND)
+        message(STATUS "SDL2_image not found, fetching...")
+        
+        FetchContent_Declare(
+            SDL2_image
+            GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
+            GIT_TAG release-2.8.2
+        )
+        FetchContent_MakeAvailable(SDL2_image)
+        set(SDL2_IMAGE_LIBRARIES SDL2_image)
+        set(SDL2_IMAGE_INCLUDE_DIRS ${SDL2_image_SOURCE_DIR}/include)
+    endif()
+endif()
+
+# -------------------------
 # libtmx (optional for now on Windows due to libxml2 complexity)
 # -------------------------
 if(NOT WIN32)
@@ -113,10 +149,12 @@ endif()
 # Your game executable
 # -------------------------
 add_executable(outtahere
-    src/main.c
+  src/main.c
 	src/game.c
 	src/player.c
-	include/game.h
+  src/tilemap.c
+  include/tilemap.h
+  include/game.h
 	include/player.h
 )
 
@@ -135,6 +173,22 @@ else()
     target_include_directories(outtahere PRIVATE ${SDL2_INCLUDE_DIRS})
     target_link_libraries(outtahere PRIVATE ${SDL2_LIBRARIES})
     target_compile_options(outtahere PRIVATE ${SDL2_CFLAGS_OTHER})
+endif()
+
+# Link SDL2_image
+if(WIN32)
+    if(TARGET SDL2_image::SDL2_image)
+        # Modern CMake target-based linking for Windows (when using find_package)
+        target_link_libraries(outtahere PRIVATE SDL2_image::SDL2_image)
+    else()
+        # When using FetchContent on Windows
+        target_link_libraries(outtahere PRIVATE SDL2_image)
+    endif()
+else()
+    # Traditional linking for Unix-like systems
+    target_include_directories(outtahere PRIVATE ${SDL2_IMAGE_INCLUDE_DIRS})
+    target_link_libraries(outtahere PRIVATE ${SDL2_IMAGE_LIBRARIES})
+    target_compile_options(outtahere PRIVATE ${SDL2_IMAGE_CFLAGS_OTHER})
 endif()
 
 # Link libtmx (if available)

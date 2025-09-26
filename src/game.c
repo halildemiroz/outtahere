@@ -1,12 +1,18 @@
-#include "SDL2/SDL.h"
-#include "SDL2/SDL_render.h"
-#include "SDL2/SDL_video.h"
-#include <game.h>
+#include <tilemap.h>
+
+static Tilemap tm;
 
 int gameInit(Game* game, const char* title){
 	// Check if SDL initialized
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)){
 		printf("SDL could not initialized: %s\n", SDL_GetError());
+		return -1;
+	}
+	
+	int imgFlag = IMG_INIT_PNG;
+	if(!(IMG_Init(imgFlag) & imgFlag)){
+		fprintf(stderr, "SDL_image could not initialized! Error: %s\n", IMG_GetError());
+		SDL_Quit();
 		return -1;
 	}
 
@@ -31,12 +37,12 @@ int gameInit(Game* game, const char* title){
 			printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
 			return -1;
 		}
+	}
 
 	// OTHER INITIALIZATIONS HERE
-	
+	tilemapInit(&tm, "../assets/outtahere.tmx", game->renderer);
 	// --------------------------
 	
-	}
 	game->running = true;
 	printf("Game initialized\n");
 	return 0;
@@ -63,13 +69,12 @@ void gameHandleEvent(Game* game){
 void gameUpdate(Game* game){}
 
 void gameRender(Game *game){
-	int r,g,b;
-	r = 255; g = 255; b = 255;
-	SDL_SetRenderDrawColor(game->renderer, r, g, b, 255);
+	// Clear screen with a background color
+	SDL_SetRenderDrawColor(game->renderer, 50, 50, 50, 255); // Dark gray background
 	SDL_RenderClear(game->renderer);
 
 	// RENDER HERE
-
+	tilemapRender(&tm, game->renderer);
 	//-----------
 	
 	SDL_RenderPresent(game->renderer);
@@ -98,7 +103,9 @@ void gameRun(Game *game){
 }
 
 void gameClean(Game *game){
+	tilemapClean(&tm);
 	SDL_DestroyWindow(game->window);
 	SDL_DestroyRenderer(game->renderer);
+	IMG_Quit();
 	SDL_Quit();
 }

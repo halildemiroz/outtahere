@@ -2,10 +2,12 @@
 #define GAME_H
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <tmx.h>
 #include <stdbool.h>
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 920
+#define SCREEN_HEIGHT 640
 #define TILE_SIZE 16
 
 typedef struct {
