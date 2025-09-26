@@ -1,6 +1,9 @@
+#include "game.h"
+#include "player.h"
 #include <tilemap.h>
 
 static Tilemap tm;
+static Player player;
 
 int gameInit(Game* game, const char* title){
 	// Check if SDL initialized
@@ -33,14 +36,20 @@ int gameInit(Game* game, const char* title){
 	if(!game->renderer){
 		// Try software renderer as fallback
 		game->renderer = SDL_CreateRenderer(game->window, -1, SDL_RENDERER_SOFTWARE);
+
 		if(!game->renderer){
 			printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
 			return -1;
 		}
 	}
 
+	memset(game->keys, 0, sizeof(game->keys));
+
 	// OTHER INITIALIZATIONS HERE
 	tilemapInit(&tm, "../assets/outtahere.tmx", game->renderer);
+	/* expose the tilemap to the game so other systems can query collisions */
+	game->tilemap = &tm;
+	playerInit(&player, game->renderer, "");
 	// --------------------------
 	
 	game->running = true;
@@ -49,24 +58,30 @@ int gameInit(Game* game, const char* title){
 }
 
 void gameHandleEvent(Game* game){
-	SDL_Event e;
-	while(SDL_PollEvent(&e)){
-		switch (e.type) {
-			case SDL_QUIT:
-				game->running = false;
-				break;
-			case SDL_KEYDOWN:
-				if(e.key.keysym.sym == SDLK_q){
-					game->running = false;
-				}
-				break;
-			default:
-				break;
+	SDL_Event event;
+	// Process all pending SDL events and update keyboard state
+	while(SDL_PollEvent(&event)){
+		if(event.type == SDL_QUIT){
+			game->running = false;
+		}
+		if(event.type == SDL_KEYDOWN){
+			if(event.key.keysym.scancode < SDL_NUM_SCANCODES)
+				game->keys[event.key.keysym.scancode] = true;
+		}
+		if(event.type == SDL_KEYUP){
+			if(event.key.keysym.scancode < SDL_NUM_SCANCODES)
+				game->keys[event.key.keysym.scancode] = false;
 		}
 	}
+
+	playerHandleInput(&player, game);
+	if(game->keys[SDL_SCANCODE_ESCAPE])
+		game->running = false;
 }
 
-void gameUpdate(Game* game){}
+void gameUpdate(Game* game, float dt){
+	playerUpdate(&player, game, dt);
+}
 
 void gameRender(Game *game){
 	// Clear screen with a background color
@@ -74,11 +89,16 @@ void gameRender(Game *game){
 	SDL_RenderClear(game->renderer);
 
 	// RENDER HERE
-	tilemapRender(&tm, game->renderer);
-	//-----------
-	
-	SDL_RenderPresent(game->renderer);
+		tilemapRender(&tm, game->renderer);
+		playerRender(&player, game->renderer);
+		/* debug overlay drawing: show object polygons/rects and MTV */
+		SDL_Rect pr = {(int)player.x, (int)player.y, player.width, player.height};
+		tilemapDebugRender(&tm, game->renderer, &pr);
+		//-----------
+		
+		SDL_RenderPresent(game->renderer);
 }
+
 
 void gameRun(Game *game){
 	Uint32 lastTime = SDL_GetTicks();
@@ -94,7 +114,7 @@ void gameRun(Game *game){
 	
 		// OTHER GAME FUNCS HERE
 		gameHandleEvent(game);
-		gameUpdate(game);
+		gameUpdate(game, deltaTime);
 		gameRender(game);
 		// ---------------------
 	
@@ -104,6 +124,7 @@ void gameRun(Game *game){
 
 void gameClean(Game *game){
 	tilemapClean(&tm);
+	playerClean(&player);
 	SDL_DestroyWindow(game->window);
 	SDL_DestroyRenderer(game->renderer);
 	IMG_Quit();

@@ -153,9 +153,11 @@ add_executable(outtahere
 	src/game.c
 	src/player.c
   src/tilemap.c
+  src/polygon_collision.c
   include/tilemap.h
   include/game.h
 	include/player.h
+  include/polygon_collision.h
 )
 
 # Link SDL2

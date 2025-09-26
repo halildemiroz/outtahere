@@ -9,7 +9,6 @@ int main(int argc, char* argv[]){
 		printf("Failed to initialize the game\n");
 		return 1;
 	}
-
 	gameRun(&game);
 	gameClean(&game);
 

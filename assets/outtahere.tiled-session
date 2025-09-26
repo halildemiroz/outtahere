@@ -5,14 +5,15 @@
     },
     "activeFile": "outtahere.tmx",
     "expandedProjectPaths": [
+        "."
     ],
     "fileStates": {
         "outtahere.tmx": {
-            "scale": 0.9767187499999999,
+            "scale": 1,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 479.6672532394818,
-                "y": 319.94880819068953
+                "x": 310.5,
+                "y": 291.5
             }
         },
         "tileset.tsx": {
