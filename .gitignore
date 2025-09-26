@@ -2,6 +2,7 @@
 *.d
 
 # Directories
+b/
 build/
 .cache/
 
