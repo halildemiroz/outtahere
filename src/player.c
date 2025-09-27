@@ -1,48 +1,135 @@
-#include "SDL_events.h"
-#include "SDL_render.h"
 #include "SDL_scancode.h"
-#include "game.h"
-#include "tilemap.h"
-#include <alloca.h>
 #include <player.h>
+#include <game.h>
+#include <tilemap.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
+	if(!player) return -1;
 	player->x = SCREEN_WIDTH / 2;
-	player->y = SCREEN_HEIGHT / 2;
+	/* place on a reasonable fallback ground so jumping is available immediately */
+	player->y = SCREEN_HEIGHT - 32 - PLAYER_HEIGHT;
 	player->vx = 0.0f;
 	player->vy = 0.0f;
 	player->width = PLAYER_WIDTH;
 	player->height = PLAYER_HEIGHT;
-	player->isOnGround = false;
+	player->isOnGround = true;
 	player->texture = NULL;
+	player->direction = EAST;
+	player->state = IDLE;
+	player->lastState = (State)-1;
+	
+	animatorInit(&player->animator);
+	/* try to load idle spritesheet (frames are PLAYER_WIDTH x PLAYER_HEIGHT) */
+	char path[512];
+	int loaded = 0;
+	/* try two likely relative paths so assets are found from different working directories */
+	switch (player->state) {
+		case IDLE:
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/idle.png", PLAYER_WIDTH, PLAYER_HEIGHT, 4, 0.12f, true) == 0)
+				loaded = 1;
+			break;
+		case WALK:
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/walk.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true) == 0)
+				loaded = 1;
+			break;
+		case RUN:
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/run.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true) == 0)
+				loaded = 1;
+			break;
+		default:
+			break;
+	}
+	if(!loaded)
+		printf("Could not load spritesheet");
+	else
+		printf("Spritesheet successfully loaded");
 
 	printf("Player initialized at position %.2f, %.2f\n", player->x, player->y);
 	return 0;
 }
 
 void playerHandleInput(Player *player, Game *game){
-	player->vx = 0.0f;
+	/* determine movement input and desired state */
+	bool left = game->keys[SDL_SCANCODE_A];
+	bool right = game->keys[SDL_SCANCODE_D];
+	bool runKey = game->keys[SDL_SCANCODE_TAB];
+	bool jumpKey = game->keys[SDL_SCANCODE_SPACE];
 
-	if(game->keys[SDL_SCANCODE_A])
-		player->vx = -PLAYER_SPEED;
-	if(game->keys[SDL_SCANCODE_D])
-		player->vx = PLAYER_SPEED;
-	/* only allow jumping when on the ground */
-	if(game->keys[SDL_SCANCODE_SPACE] && player->isOnGround){
+	/* default to standing */
+	player->vx = 0.0f;
+	State desired = IDLE;
+
+	if(left || right){
+		if(runKey) desired = RUN;
+		else desired = WALK; /* walking uses the walk animation */
+
+		/* set velocity according to whether we're running */
+		float speed = (desired == RUN) ? RUN_SPEED : WALK_SPEED;
+		if(left){
+			player->vx = -speed;
+			player->direction = WEST;
+		} else if(right){
+			player->vx = speed;
+			player->direction = EAST;
+		}
+	}
+
+	/* jump */
+	if(jumpKey && player->isOnGround){
 		player->vy = JUMP_SPEED;
 		player->isOnGround = false;
+		desired = JUMP;
 	}
-}
 
+	/* swap animations only when state actually changes */
+	if(desired != player->lastState){
+			switch(desired){
+				case IDLE:
+					animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/idle.png", PLAYER_WIDTH, PLAYER_HEIGHT, 4, 0.12f, true);
+					break;
+				case WALK:
+					animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/walk.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true);
+					break;
+		case RUN:
+			animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/run.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true);
+			break;
+		case JUMP:
+			/* reuse idle frame(s) or add a jump spritesheet if available */
+			animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/jump.png", PLAYER_WIDTH, PLAYER_HEIGHT, 2, 0.12f, false);
+			break;
+			default:
+				break;
+		}
+
+
+		player->lastState = desired;
+	}
+
+	player->state = desired;
+}
 void playerRender(Player *player, SDL_Renderer *renderer){
+	/* prefer animator rendering when available */
+	if(player->animator.texture){
+		SDL_RendererFlip flip = (player->direction == 1) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
+		animatorRender(&player->animator, renderer, (int)player->x, (int)player->y, player->width, player->height, flip);
+		return;
+	}
+
 	SDL_Rect dest = {(int)player->x, (int)player->y, player->width, player->height};
 	if(player->texture)
 		SDL_RenderCopy(renderer, player->texture, NULL, &dest);
-	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-	SDL_RenderFillRect(renderer, &dest);
+	else {
+		SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+		SDL_RenderFillRect(renderer, &dest);
+	}
 }
 
 void playerUpdate(Player *player, Game *game, float dt){
+	/* Update animator timing */
+	animatorUpdate(&player->animator, dt);
+
 	/* Axis-separated collision: handle horizontal then vertical */
 	if(game->tilemap){
 		/* Horizontal move */
@@ -190,9 +277,11 @@ void playerUpdate(Player *player, Game *game, float dt){
 }
 
 void playerClean(Player *player){
+	animatorFree(&player->animator);
 	if(player->texture){
 		SDL_DestroyTexture(player->texture);
 		player->texture = NULL;
 	}
 }
+
 

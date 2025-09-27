@@ -1,9 +1,10 @@
-#include "game.h"
-#include "player.h"
+#include "anim.h"
 #include <tilemap.h>
+#include <player.h>
 
 static Tilemap tm;
 static Player player;
+static Animator a;
 
 int gameInit(Game* game, const char* title){
 	// Check if SDL initialized
@@ -46,7 +47,7 @@ int gameInit(Game* game, const char* title){
 	memset(game->keys, 0, sizeof(game->keys));
 
 	// OTHER INITIALIZATIONS HERE
-	tilemapInit(&tm, "../assets/outtahere.tmx", game->renderer);
+	tilemapInit(&tm, "../assets/tilemap/outtahere.tmx", game->renderer);
 	/* expose the tilemap to the game so other systems can query collisions */
 	game->tilemap = &tm;
 	playerInit(&player, game->renderer, "");
