@@ -5,6 +5,7 @@
 #include <SDL2/SDL_image.h>
 #include <tmx.h>
 #include <stdbool.h>
+#include "camera.h"
 
 #define SCREEN_WIDTH 920
 #define SCREEN_HEIGHT 640
@@ -19,6 +20,8 @@ typedef struct {
 	bool running;
 	bool keys[SDL_NUM_SCANCODES];
 	Tilemap* tilemap;
+	Camera cam;
+	bool showDebug; /* toggle debug overlays */
 } 	Game;
 extern Game game;
 

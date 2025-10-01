@@ -1,4 +1,5 @@
-#include <tilemap.h>
+#include "tilemap.h"
+#include "camera.h"
 #include <polygon_collision.h>
 #include <string.h>
 
@@ -43,7 +44,7 @@ int tilemapInit(Tilemap *tm, const char *filename, SDL_Renderer *renderer){
 			
 			// Try to load the image
 			char imagePath[512];
-			snprintf(imagePath, sizeof(imagePath), "../assets/%s", tileset->image->source);
+			snprintf(imagePath, sizeof(imagePath), "../assets/tilemap/%s", tileset->image->source);
 			
 			SDL_Surface* surface = IMG_Load(imagePath);
 			if(!surface){
@@ -70,22 +71,30 @@ int tilemapInit(Tilemap *tm, const char *filename, SDL_Renderer *renderer){
 	return 0;
 }
 
-void tilemapRender(Tilemap *tm, SDL_Renderer *renderer){
+void tilemapRender(Tilemap *tm, SDL_Renderer *renderer, Camera* cam){
 	if(!tm->map) return;
 
 	tmx_layer* layer = tm->map->ly_head;
 	while(layer){
-		if(layer->visible && layer->type == L_LAYER){
-			for(int y = 0; y < tm->map->height; y++){
-				for(int x = 0; x < tm->map->width; x++){
-					unsigned gid = layer->content.gids[(y * tm->map->width) + x];
-					if(gid != 0){
-						SDL_Rect destRect = {
-							x * tm->map->tile_width,
-							y * tm->map->tile_height,
-							tm->map->tile_width,
-							tm->map->tile_height
-						};
+			if(layer->visible && layer->type == L_LAYER){
+				int startX = 0, startY = 0, endX = tm->map->width - 1, endY = tm->map->height - 1;
+				if(cam && cam->optimizeRender){
+					startX = cam->x / tm->map->tile_width - 1; if(startX < 0) startX = 0;
+					startY = cam->y / tm->map->tile_height - 1; if(startY < 0) startY = 0;
+					endX = (cam->x + cam->w) / tm->map->tile_width + 1; if(endX >= tm->map->width) endX = tm->map->width - 1;
+					endY = (cam->y + cam->h) / tm->map->tile_height + 1; if(endY >= tm->map->height) endY = tm->map->height - 1;
+				}
+				for(int y = startY; y <= endY; y++){
+					for(int x = startX; x <= endX; x++){
+						unsigned gid = layer->content.gids[(y * tm->map->width) + x];
+						if(gid != 0){
+							SDL_Rect destRect = {
+								x * tm->map->tile_width - (cam ? cam->x : 0),
+								y * tm->map->tile_height - (cam ? cam->y : 0),
+								tm->map->tile_width,
+								tm->map->tile_height
+							};
+
 					
 						// Find which tileset this gid belongs to
 						tmx_tileset_list* ts_list = tm->map->ts_head;
@@ -194,7 +203,7 @@ int tilemapPolygonRectMTV(const TileObject* to, const SDL_Rect* r, float* nx, fl
 	return 1;
 }
 
-void tilemapDebugRender(Tilemap *tm, SDL_Renderer *renderer, SDL_Rect* playerRect){
+void tilemapDebugRender(Tilemap *tm, SDL_Renderer *renderer, SDL_Rect* playerRect, Camera* cam){
 	if(!tm || !renderer || !playerRect) return;
 	
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
@@ -207,16 +216,23 @@ void tilemapDebugRender(Tilemap *tm, SDL_Renderer *renderer, SDL_Rect* playerRec
 		while(layer){
 			if(layer->visible && layer->type == L_LAYER){
 				bool isBackground = (strcmp(layer->name, "background") == 0);
-				for(int y = 0; y < tm->map->height; y++){
-					for(int x = 0; x < tm->map->width; x++){
+				int startX = 0, startY = 0, endX = tm->map->width - 1, endY = tm->map->height - 1;
+				if(cam && cam->optimizeRender){
+					startX = cam->x / tw - 1; if(startX < 0) startX = 0;
+					startY = cam->y / th - 1; if(startY < 0) startY = 0;
+					endX = (cam->x + cam->w) / tw + 1; if(endX >= tm->map->width) endX = tm->map->width - 1;
+					endY = (cam->y + cam->h) / th + 1; if(endY >= tm->map->height) endY = tm->map->height - 1;
+				}
+				for(int y = startY; y <= endY; y++){
+					for(int x = startX; x <= endX; x++){
 						unsigned gid = layer->content.gids[(y * tm->map->width) + x];
 						
 						if(!isBackground && gid != 0){
 							/* Draw polygon for tile GID 43 (tile ID 42) */
 							if(gid == 43){
 								SDL_SetRenderDrawColor(renderer, 0, 255, 0, 150);
-								int tileX = x * tw;
-								int tileY = y * th;
+								int tileX = x * tw - (cam ? cam->x : 0);
+								int tileY = y * th - (cam ? cam->y : 0);
 								
 								/* Draw the triangle polygon */
 								float points[] = {0.181818f, 31.9992f, 31.8182f, 32.0909f, 31.9999f, 0.0916883f};
@@ -233,7 +249,7 @@ void tilemapDebugRender(Tilemap *tm, SDL_Renderer *renderer, SDL_Rect* playerRec
 							} else {
 								/* Draw regular tile collision box for non-background tiles */
 								SDL_SetRenderDrawColor(renderer, 0, 0, 255, 100);
-								SDL_Rect tileRect = {x * tw, y * th, tw, th};
+								SDL_Rect tileRect = {x * tw - (cam ? cam->x : 0), y * th - (cam ? cam->y : 0), tw, th};
 								SDL_RenderDrawRect(renderer, &tileRect);
 							}
 						}
@@ -246,7 +262,8 @@ void tilemapDebugRender(Tilemap *tm, SDL_Renderer *renderer, SDL_Rect* playerRec
 
 	/* Draw player rect */
 	SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-	SDL_RenderDrawRect(renderer, playerRect);
+	SDL_Rect adj = {playerRect->x - (cam ? cam->x : 0), playerRect->y - (cam ? cam->y : 0), playerRect->w, playerRect->h};
+	SDL_RenderDrawRect(renderer, &adj);
 }
 
 void tilemapClean(Tilemap *tm){

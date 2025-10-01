@@ -1,7 +1,10 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
-#include <game.h>
+#include <SDL2/SDL.h>
+#include <tmx.h>
+
+#include "camera.h"
 
 /* Default list of substrings in layer names that should be ignored for collisions.
    You can override this by defining `TILEMAP_IGNORE_LAYER_NAMES` before including this header.
@@ -41,8 +44,8 @@ typedef struct Tilemap {
 int tilemapInit(Tilemap* tm, const char* filename, SDL_Renderer* renderer);
 
 void tilemapClean(Tilemap* tm);
-void tilemapRender(Tilemap* tm, SDL_Renderer* renderer);
-void tilemapDebugRender(Tilemap* tm, SDL_Renderer* renderer, SDL_Rect* playerRect);
+void tilemapRender(Tilemap* tm, SDL_Renderer* renderer, Camera* cam);
+void tilemapDebugRender(Tilemap* tm, SDL_Renderer* renderer, SDL_Rect* playerRect, Camera* cam);
 bool tilemapCheckCollision(Tilemap* tm, SDL_Rect* rect);
 
 /* returns a pointer to a collision object that intersects `rect`, or NULL */

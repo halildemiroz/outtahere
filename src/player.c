@@ -14,6 +14,8 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 	player->vy = 0.0f;
 	player->width = PLAYER_WIDTH;
 	player->height = PLAYER_HEIGHT;
+	player->collisionWidth = PLAYER_COLLISION_WIDTH;
+	player->collisionHeight = PLAYER_COLLISION_HEIGHT;
 	player->isOnGround = true;
 	player->texture = NULL;
 	player->direction = EAST;
@@ -31,11 +33,11 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 				loaded = 1;
 			break;
 		case WALK:
-			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/walk.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true) == 0)
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/walk.png", PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, 6, 0.12f, true) == 0)
 				loaded = 1;
 			break;
 		case RUN:
-			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/run.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true) == 0)
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/run.png", PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, 6, 0.12f, true) == 0)
 				loaded = 1;
 			break;
 		default:
@@ -87,17 +89,17 @@ void playerHandleInput(Player *player, Game *game){
 	if(desired != player->lastState){
 			switch(desired){
 				case IDLE:
-					animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/idle.png", PLAYER_WIDTH, PLAYER_HEIGHT, 4, 0.12f, true);
+					animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/idle.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 4, 0.12f, true);
 					break;
 				case WALK:
-					animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/walk.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true);
+					animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/walk.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 6, 0.12f, true);
 					break;
 		case RUN:
-			animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/run.png", PLAYER_WIDTH, PLAYER_HEIGHT, 6, 0.12f, true);
+			animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/run.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 6, 0.12f, true);
 			break;
 		case JUMP:
 			/* reuse idle frame(s) or add a jump spritesheet if available */
-			animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/jump.png", PLAYER_WIDTH, PLAYER_HEIGHT, 2, 0.12f, false);
+			animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/jump.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 2, 0.12f, false);
 			break;
 			default:
 				break;
@@ -109,15 +111,17 @@ void playerHandleInput(Player *player, Game *game){
 
 	player->state = desired;
 }
-void playerRender(Player *player, SDL_Renderer *renderer){
+void playerRender(Player *player, SDL_Renderer *renderer, Camera* cam){
+	int drawX = (int)player->x - (cam ? cam->x : 0);
+	int drawY = (int)player->y - (cam ? cam->y : 0);
 	/* prefer animator rendering when available */
 	if(player->animator.texture){
 		SDL_RendererFlip flip = (player->direction == 1) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-		animatorRender(&player->animator, renderer, (int)player->x, (int)player->y, player->width, player->height, flip);
+		animatorRender(&player->animator, renderer, drawX, drawY, player->width, player->height, flip);
 		return;
 	}
 
-	SDL_Rect dest = {(int)player->x, (int)player->y, player->width, player->height};
+	SDL_Rect dest = {drawX, drawY, player->width, player->height};
 	if(player->texture)
 		SDL_RenderCopy(renderer, player->texture, NULL, &dest);
 	else {
@@ -132,9 +136,18 @@ void playerUpdate(Player *player, Game *game, float dt){
 
 	/* Axis-separated collision: handle horizontal then vertical */
 	if(game->tilemap){
+		/* Calculate collision box offset to center it within the sprite */
+		int collisionOffsetX = (player->width - player->collisionWidth) / 2;
+		int collisionOffsetY = (player->height - player->collisionHeight) / 2;
+		
 		/* Horizontal move */
 		float newX = player->x + player->vx * dt;
-		SDL_Rect hr = {(int)newX, (int)player->y, player->width, player->height};
+		SDL_Rect hr = {
+			(int)newX + collisionOffsetX, 
+			(int)player->y + collisionOffsetY, 
+			player->collisionWidth, 
+			player->collisionHeight
+		};
 		if(!tilemapCheckCollision(game->tilemap, &hr)){
 			player->x = newX;
 		}
@@ -144,7 +157,12 @@ void playerUpdate(Player *player, Game *game, float dt){
 
 		/* Vertical move */
 		float newY = player->y + player->vy * dt;
-		SDL_Rect vr = {(int)player->x, (int)newY, player->width, player->height};
+		SDL_Rect vr = {
+			(int)player->x + collisionOffsetX, 
+			(int)newY + collisionOffsetY, 
+			player->collisionWidth, 
+			player->collisionHeight
+		};
 		/* Check for collision and also fetch the object we hit (if any) */
 		TileObject* hitObj = (TileObject*)NULL;
 		if(!tilemapCheckCollision(game->tilemap, &vr)){
@@ -215,8 +233,8 @@ void playerUpdate(Player *player, Game *game, float dt){
 					}
 				} else {
 					/* simple AABB resolution when hitting an object rect: push player out along minimal axis */
-					int overlapLeft = (vr.x + vr.w) - hitObj->rect.x;
-					int overlapRight = (hitObj->rect.x + hitObj->rect.w) - vr.x;
+					int overlapLeft = (vr.x + vr.w - 10) - hitObj->rect.x;
+					int overlapRight = (hitObj->rect.x + hitObj->rect.w - 10) - vr.x;
 					int overlapTop = (vr.y + vr.h) - hitObj->rect.y;
 					int overlapBottom = (hitObj->rect.y + hitObj->rect.h) - vr.y;
 					/* choose smallest overlap */
@@ -270,10 +288,16 @@ void playerUpdate(Player *player, Game *game, float dt){
 		}
 	}
 
-	/* World bounds */
+	/* World bounds: use tilemap pixel dimensions when available */
+	int worldW = SCREEN_WIDTH;
+	int worldH = SCREEN_HEIGHT;
+	if(game && game->tilemap && game->tilemap->map){
+		worldW = game->tilemap->map->width * game->tilemap->map->tile_width;
+		worldH = game->tilemap->map->height * game->tilemap->map->tile_height;
+	}
 	if(player->x < 0) player->x = 0;
-	if(player->x + player->width > SCREEN_WIDTH) player->x = SCREEN_WIDTH - player->width;
-	if(player->y > SCREEN_HEIGHT) player->y = SCREEN_HEIGHT - player->height;
+	if(player->x + player->width > worldW) player->x = worldW - player->width;
+	if(player->y + player->height > worldH) player->y = worldH - player->height;
 }
 
 void playerClean(Player *player){
