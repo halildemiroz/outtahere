@@ -1,6 +1,7 @@
 #include "anim.h"
-#include <tilemap.h>
-#include <player.h>
+#include "tilemap.h"
+#include "player.h"
+#include "game.h"
 
 static Tilemap tm;
 static Player player;
@@ -46,8 +47,20 @@ int gameInit(Game* game, const char* title){
 
 	memset(game->keys, 0, sizeof(game->keys));
 
+	/* initialize camera */
+	game->cam.w = SCREEN_WIDTH;
+	game->cam.h = SCREEN_HEIGHT;
+	game->cam.x = 0;
+	game->cam.y = 0;
+	game->cam.fx = 0.0f;
+	game->cam.fy = 0.0f;
+	game->cam.lerpFactor = 0.15f; /* default smoothing */
+	game->cam.smoothingEnabled = true;
+	game->cam.optimizeRender = true;
+	game->showDebug = true;
+
 	// OTHER INITIALIZATIONS HERE
-	tilemapInit(&tm, "../assets/tilemap/outtahere.tmx", game->renderer);
+	tilemapInit(&tm, "../assets/tilemap/demo.tmx", game->renderer);
 	/* expose the tilemap to the game so other systems can query collisions */
 	game->tilemap = &tm;
 	playerInit(&player, game->renderer, "");
@@ -66,6 +79,24 @@ void gameHandleEvent(Game* game){
 			game->running = false;
 		}
 		if(event.type == SDL_KEYDOWN){
+			/* edge-triggered toggles (ignore repeats) */
+			if(event.key.repeat == 0){
+				if(event.key.keysym.scancode == SDL_SCANCODE_F1){
+					/* toggle smoothing */
+					game->cam.smoothingEnabled = !game->cam.smoothingEnabled;
+					printf("Camera smoothing: %s\n", game->cam.smoothingEnabled ? "ON" : "OFF");
+				}
+				if(event.key.keysym.scancode == SDL_SCANCODE_F2){
+					/* toggle debug overlays */
+					game->showDebug = !game->showDebug;
+					printf("Debug overlays: %s\n", game->showDebug ? "ON" : "OFF");
+				}
+				if(event.key.keysym.scancode == SDL_SCANCODE_F3){
+					/* toggle render optimization */
+					game->cam.optimizeRender = !game->cam.optimizeRender;
+					printf("Render culling: %s\n", game->cam.optimizeRender ? "ON" : "OFF");
+				}
+			}
 			if(event.key.keysym.scancode < SDL_NUM_SCANCODES)
 				game->keys[event.key.keysym.scancode] = true;
 		}
@@ -82,19 +113,63 @@ void gameHandleEvent(Game* game){
 
 void gameUpdate(Game* game, float dt){
 	playerUpdate(&player, game, dt);
+
+	// Update camera to follow player
+	int mapW = SCREEN_WIDTH;
+	int mapH = SCREEN_HEIGHT;
+	if(game->tilemap && game->tilemap->map){
+		mapW = game->tilemap->map->width * game->tilemap->map->tile_width;
+		mapH = game->tilemap->map->height * game->tilemap->map->tile_height;
+	}
+	SDL_Rect pr = {(int)player.x, (int)player.y, player.width, player.height};
+	updateCamera(&game->cam, pr, mapW, mapH);
 }
 
 void gameRender(Game *game){
 	// Clear screen with a background color
-	SDL_SetRenderDrawColor(game->renderer, 50, 50, 50, 255); // Dark gray background
+	SDL_SetRenderDrawColor(game->renderer, 0, 155, 90, 255); // Dark gray background
 	SDL_RenderClear(game->renderer);
 
 	// RENDER HERE
-		tilemapRender(&tm, game->renderer);
-		playerRender(&player, game->renderer);
+		tilemapRender(&tm, game->renderer, &game->cam);
+		playerRender(&player, game->renderer, &game->cam);
 		/* debug overlay drawing: show object polygons/rects and MTV */
-		SDL_Rect pr = {(int)player.x, (int)player.y, player.width, player.height};
-		tilemapDebugRender(&tm, game->renderer, &pr);
+		/* Show the actual collision box (smaller, centered) */
+		int collisionOffsetX = (player.width - player.collisionWidth) / 2;
+		int collisionOffsetY = (player.height - player.collisionHeight) / 2;
+		SDL_Rect pr = {
+			(int)player.x + collisionOffsetX, 
+			(int)player.y + collisionOffsetY, 
+			player.collisionWidth, 
+			player.collisionHeight
+		};
+		if(game->showDebug){
+			tilemapDebugRender(&tm, game->renderer, &pr, &game->cam);
+		}
+
+		/* Small on-screen indicators for toggle states (top-left) */
+		{
+			SDL_Rect r1 = {8, 8, 12, 12}; /* smoothing */
+			SDL_Rect r2 = {8 + 16, 8, 12, 12}; /* debug */
+			SDL_Rect r3 = {8 + 32, 8, 12, 12}; /* culling */
+			/* smoothing */
+			if(game->cam.smoothingEnabled) SDL_SetRenderDrawColor(game->renderer, 0, 200, 0, 255);
+			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			SDL_RenderFillRect(game->renderer, &r1);
+			/* debug */
+			if(game->showDebug) SDL_SetRenderDrawColor(game->renderer, 0, 200, 200, 255);
+			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			SDL_RenderFillRect(game->renderer, &r2);
+			/* culling */
+			if(game->cam.optimizeRender) SDL_SetRenderDrawColor(game->renderer, 200, 200, 0, 255);
+			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			SDL_RenderFillRect(game->renderer, &r3);
+			/* draw borders */
+			SDL_SetRenderDrawColor(game->renderer, 0, 0, 0, 255);
+			SDL_RenderDrawRect(game->renderer, &r1);
+			SDL_RenderDrawRect(game->renderer, &r2);
+			SDL_RenderDrawRect(game->renderer, &r3);
+		}
 		//-----------
 		
 		SDL_RenderPresent(game->renderer);
@@ -126,6 +201,7 @@ void gameRun(Game *game){
 void gameClean(Game *game){
 	tilemapClean(&tm);
 	playerClean(&player);
+	animatorFree(&a);
 	SDL_DestroyWindow(game->window);
 	SDL_DestroyRenderer(game->renderer);
 	IMG_Quit();

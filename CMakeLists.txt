@@ -155,6 +155,8 @@ add_executable(outtahere
   src/tilemap.c
   src/polygon_collision.c
   src/anim.c
+  src/camera.c
+  include/camera.h
   include/anim.h
   include/tilemap.h
   include/game.h
