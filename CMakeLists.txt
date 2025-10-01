@@ -193,7 +193,7 @@ if(WIN32)
 else()
     # Traditional linking for Unix-like systems
     target_include_directories(outtahere PRIVATE ${SDL2_IMAGE_INCLUDE_DIRS})
-    target_link_libraries(outtahere PRIVATE ${SDL2_IMAGE_LIBRARIES})
+    target_link_libraries(outtahere PRIVATE ${SDL2_IMAGE_LIBRARIES} m)
     target_compile_options(outtahere PRIVATE ${SDL2_IMAGE_CFLAGS_OTHER})
 endif()
 
