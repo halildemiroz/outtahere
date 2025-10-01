@@ -3,17 +3,25 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "outtahere.tmx",
+    "activeFile": "tileset.tsx",
     "expandedProjectPaths": [
         "."
     ],
     "fileStates": {
-        "outtahere.tmx": {
-            "scale": 1,
+        "demo.tmx": {
+            "scale": 0.41463541666666665,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 310.5,
-                "y": 291.5
+                "x": 959.8794121341541,
+                "y": 360.55771887953773
+            }
+        },
+        "outtahere.tmx": {
+            "scale": 0.75,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 495.99999999999994,
+                "y": 383.33333333333337
             }
         },
         "tileset.tsx": {
@@ -26,12 +34,14 @@
     "map.renderOrder": "3",
     "openFiles": [
         "tileset.tsx",
-        "outtahere.tmx"
+        "outtahere.tmx",
+        "demo.tmx"
     ],
     "project": "outtahere.tiled-project",
     "recentFiles": [
-        "tileset.tsx",
-        "outtahere.tmx"
+        "demo.tmx",
+        "outtahere.tmx",
+        "tileset.tsx"
     ],
     "tileset.lastUsedFormat": "tsx"
 }
