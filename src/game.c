@@ -23,7 +23,7 @@ int gameInit(Game* game, const char* title){
 
 	// Check if window created
 	game->window = SDL_CreateWindow(title, 100, 100, SCREEN_WIDTH, SCREEN_HEIGHT, 
-		SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+		SDL_WINDOW_SHOWN);
 	if(!game->window){
 		fprintf(stderr, "Window could not be created! SDL_Error: %s\n", SDL_GetError());
 		return -1;
@@ -57,7 +57,7 @@ int gameInit(Game* game, const char* title){
 	game->cam.lerpFactor = 0.15f; /* default smoothing */
 	game->cam.smoothingEnabled = true;
 	game->cam.optimizeRender = true;
-	game->showDebug = true;
+	game->showDebug = false;
 
 	// OTHER INITIALIZATIONS HERE
 	tilemapInit(&tm, "../assets/tilemap/demo.tmx", game->renderer);
@@ -79,7 +79,6 @@ void gameHandleEvent(Game* game){
 			game->running = false;
 		}
 		if(event.type == SDL_KEYDOWN){
-			/* edge-triggered toggles (ignore repeats) */
 			if(event.key.repeat == 0){
 				if(event.key.keysym.scancode == SDL_SCANCODE_F1){
 					/* toggle smoothing */
@@ -127,7 +126,7 @@ void gameUpdate(Game* game, float dt){
 
 void gameRender(Game *game){
 	// Clear screen with a background color
-	SDL_SetRenderDrawColor(game->renderer, 0, 155, 90, 255); // Dark gray background
+	SDL_SetRenderDrawColor(game->renderer, 0, 155, 90, 255);
 	SDL_RenderClear(game->renderer);
 
 	// RENDER HERE
@@ -157,12 +156,16 @@ void gameRender(Game *game){
 			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
 			SDL_RenderFillRect(game->renderer, &r1);
 			/* debug */
-			if(game->showDebug) SDL_SetRenderDrawColor(game->renderer, 0, 200, 200, 255);
-			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			if(game->showDebug) 
+				SDL_SetRenderDrawColor(game->renderer, 0, 200, 200, 255);
+			else
+				SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
 			SDL_RenderFillRect(game->renderer, &r2);
 			/* culling */
-			if(game->cam.optimizeRender) SDL_SetRenderDrawColor(game->renderer, 200, 200, 0, 255);
-			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			if(game->cam.optimizeRender) 
+				SDL_SetRenderDrawColor(game->renderer, 200, 200, 0, 255);
+			else
+				SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
 			SDL_RenderFillRect(game->renderer, &r3);
 			/* draw borders */
 			SDL_SetRenderDrawColor(game->renderer, 0, 0, 0, 255);

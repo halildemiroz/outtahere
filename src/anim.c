@@ -47,6 +47,12 @@ int animatorLoadSingle(Animator* a, SDL_Renderer* r, const char* path){
 
 int animatorLoadSpritesheet(Animator* a, SDL_Renderer* r, const char* path, int tileW, int tileH, int frameCount, float frameTime, bool loop){
 	if(!a || !r || !path || tileW <= 0 || tileH <= 0) return -1;
+
+	static char lastPath[512] = "";
+	if(strcmp(lastPath, path) == 0 && a->texture != NULL)
+		return 0;
+	strncpy(lastPath, path, sizeof(lastPath) - 1);
+
 	animatorFree(a);
 	SDL_Surface* surf = IMG_Load(path);
 	if(!surf){

@@ -6,31 +6,30 @@
 
 #define PLAYER_WIDTH 48
 #define PLAYER_HEIGHT 48
-#define PLAYER_COLLISION_WIDTH 32
+#define PLAYER_COLLISION_WIDTH 28
 #define PLAYER_COLLISION_HEIGHT 48
 #define WALK_SPEED 150.0f
 #define RUN_SPEED 225.0f
 #define JUMP_SPEED -400.0f
-#define GRAVITY 400.0f
+#define GRAVITY 800.0f
 
 typedef enum{
 
-// 0					1				2			3
 	NORTH = 0, WEST, SOUTH, EAST
 }	Direction;
 
 typedef enum{
 	IDLE = 0, WALK, RUN, JUMP
-} 	 State;
+} State;
 
 typedef struct{
 	float x, y;
 	float vx, vy;
-	int width, height;          /* for rendering */
-	int collisionWidth, collisionHeight;  /* for collision detection */
+	int width, height;      
+	int collisionWidth, collisionHeight;
 	bool isOnGround;
 	SDL_Texture* texture;
-	Animator animator; /* animation controller */
+	Animator animator;
 	Direction direction;
 	State state;
 	State lastState;
