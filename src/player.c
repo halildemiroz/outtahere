@@ -19,16 +19,16 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 	player->isOnGround = true;
 	player->texture = NULL;
 	player->direction = EAST;
-	player->state = IDLE;
+	player->state = RUN;
 	player->lastState = (State)-1;
-	
+
 	animatorInit(&player->animator);
 	char path[512];
 	int loaded = 0;
 	/* try two likely relative paths so assets are found from different working directories */
 	switch (player->state) {
 		case IDLE:
-			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/idle.png", PLAYER_WIDTH, PLAYER_HEIGHT, 4, 0.12f, true) == 0)
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/idle.png", PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, 4, 0.12f, true) == 0)
 				loaded = 1;
 			break;
 		case WALK:
@@ -59,7 +59,7 @@ void playerHandleInput(Player *player, Game *game){
 	bool right = game->keys[SDL_SCANCODE_D];
 	bool runKey = game->keys[SDL_SCANCODE_LSHIFT];
 	bool jumpKey = game->keys[SDL_SCANCODE_SPACE];
-
+	
 	/* default to standing or maintain jumping state */
 	player->vx = 0.0f;
 	State desired;
@@ -98,7 +98,7 @@ void playerHandleInput(Player *player, Game *game){
 
 
 	/* swap animations only when state actually changes */
-	if(desired != player->state){
+	if(desired != player->state || player->state == IDLE){
 		switch(desired){
 			case IDLE:
 				animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/idle.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 4, 0.12f, true);

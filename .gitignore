@@ -1,8 +1,6 @@
 # Prerequisites
 *.d
 
-TODO.md
-
 # Directories
 .vscode/
 .DS_Store
