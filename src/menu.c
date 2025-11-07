@@ -1,4 +1,3 @@
-#include "SDL_ttf.h"
 #include <menu.h>
 
 void menuRenderGame(Menu* menu, const char *fontPath, SDL_Renderer *renderer){

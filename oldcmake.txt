@@ -1,0 +1,86 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(outtaHere LANGUAGES C)
+
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CMAKE_BUILD_TYPE Debug)
+
+# Include directories
+include_directories(include)
+
+# pkg-config support (used for SDL_ttf fallback and libtmx)
+find_package(PkgConfig REQUIRED)
+
+# Find SDL2
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
+
+# Find SDL2_image
+find_package(SDL2_image REQUIRED)
+include_directories(${SDL2_IMAGE_INCLUDE_DIRS})
+
+# Find SDL2_ttf
+find_package(SDL2_ttf REQUIRED)
+include_directories(${SDL2_TTF_INCLUDE_DIRS})
+
+# Ensure SDL2_ttf link variables exist (fallback to pkg-config or find_library)
+if(NOT DEFINED SDL2_TTF_LIBRARIES OR SDL2_TTF_LIBRARIES STREQUAL "")
+    pkg_check_modules(SDL2_TTF_PKG SDL2_ttf)
+    if(SDL2_TTF_PKG_FOUND)
+        set(SDL2_TTF_LIBRARIES ${SDL2_TTF_PKG_LIBRARIES})
+        include_directories(${SDL2_TTF_PKG_INCLUDE_DIRS})
+    else()
+        # try to find a platform library name
+        find_library(SDL2_TTF_LIB NAMES SDL2_ttf ttf SDL2_ttf-2.0.0)
+        if(SDL2_TTF_LIB)
+            set(SDL2_TTF_LIBRARIES ${SDL2_TTF_LIB})
+        endif()
+    endif()
+endif()
+
+# Find libtmx (optional)
+pkg_check_modules(LIBTMX libtmx)
+if(LIBTMX_FOUND)
+    message(STATUS "Found libtmx via pkg-config: ${LIBTMX_VERSION}")
+    include_directories(${LIBTMX_INCLUDE_DIRS})
+else()
+    message(WARNING "libtmx not found via pkg-config. TMX support will be disabled unless you provide LIBTMX_DIR.")
+    if(DEFINED LIBTMX_DIR)
+        # Allow user to point at a local install: -DLIBTMX_DIR=/path/to/install
+        set(LIBTMX_INCLUDE_DIRS "${LIBTMX_DIR}/include")
+        set(LIBTMX_LIBRARIES "${LIBTMX_DIR}/lib/libtmx.a")
+        include_directories(${LIBTMX_INCLUDE_DIRS})
+        message(STATUS "Using libtmx from LIBTMX_DIR=${LIBTMX_DIR}")
+    else()
+        # ensure variables exist (empty) so later linkage step is safe
+        set(LIBTMX_INCLUDE_DIRS "")
+        set(LIBTMX_LIBRARIES "")
+    endif()
+endif()
+
+# Source files
+file(GLOB SOURCES "src/*.c")
+
+# Add the executable
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+# Link SDL2, SDL2_image, SDL2_ttf, and libtmx
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES} ${LIBTMX_LIBRARIES})
+
+# macOS-specific settings
+if(APPLE)
+    message(STATUS "Building for macOS")
+    target_link_libraries(${PROJECT_NAME} "-framework Cocoa" "-framework OpenGL" "-framework IOKit" "-framework CoreVideo")
+endif()
+
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# Print a message when done
+message(STATUS "CMake configuration complete. Build files are in ${CMAKE_BINARY_DIR}")

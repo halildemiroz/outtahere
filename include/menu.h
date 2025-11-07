@@ -2,7 +2,7 @@
 #define MENU_H
 
 #include <game.h>
-#include <SDL_ttf.h>
+#include <SDL2/SDL_ttf.h>
 
 typedef struct{	
 	TTF_Font* font;
