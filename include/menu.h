@@ -2,13 +2,9 @@
 #define MENU_H
 
 #include <game.h>
-#include <SDL2/SDL_ttf.h>
 
-typedef struct{	
-	TTF_Font* font;
-	SDL_Rect rect;
-} Menu;
-
-void menuRenderGame(Menu* menu, const char* fontPath, SDL_Renderer* renderer);
+void startScreen(Game* game);
+void gameScreen(Game* game);
+void endScreen(Game* game);
 
 #endif

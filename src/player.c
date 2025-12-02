@@ -43,9 +43,9 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 			break;
 	}
 	if(!loaded)
-		printf("Could not load spritesheet");
+		printf("Could not load spritesheet\n");
 	else
-		printf("Spritesheet successfully loaded");
+		printf("Spritesheet successfully loaded\n");
 
 	printf("Player initialized at position %.2f, %.2f\n", player->x, player->y);
 	return 0;
