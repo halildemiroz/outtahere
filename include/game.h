@@ -13,8 +13,10 @@
 
 typedef struct{
     TTF_Font* font;
-    SDL_Surface* fontSurface;
-    SDL_Texture* fontTexture;
+    SDL_Surface* startSurface;
+    SDL_Surface* endSurface;
+    SDL_Texture* startTexture;
+    SDL_Texture* endTexture;
 } Font;
 
 typedef enum {

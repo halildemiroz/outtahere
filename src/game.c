@@ -3,6 +3,7 @@
 #include "tilemap.h"
 #include "player.h"
 #include "game.h"
+#include <SDL2/SDL_scancode.h>
 #include <SDL2/SDL_ttf.h>
 #include <menu.h>
 
@@ -68,8 +69,22 @@ int gameInit(Game* game, const char* title){
 	game->tilemap = &tm;
 	playerInit(&player, game->renderer, "");
 
-	TTF_Init();
 	// --------------------------
+	// TTF ----------------------
+	TTF_Init();
+
+	game->font = (Font*)malloc(sizeof(Font));
+	if(!game->font){
+		fprintf(stderr, "Failed to allocate memory for font struct\n");
+		return -1;
+	}
+	memset(game->font, 0, sizeof(Font));
+	
+	game->font->font = TTF_OpenFont("../assets/font.ttf", 48);
+
+	loadScreenAssets(game);
+
+	// ---------------------------
 	
  	game->running = true;
  	game->state = START;
@@ -79,6 +94,7 @@ int gameInit(Game* game, const char* title){
 }
 
 void gameHandleEvent(Game* game){
+	playerHandleInput(&player, game);
 	SDL_Event event;
 	// Process all pending SDL events and update keyboard state
 	while(SDL_PollEvent(&event)){
@@ -101,6 +117,9 @@ void gameHandleEvent(Game* game){
 					/* toggle render optimization */
 					game->cam.optimizeRender = !game->cam.optimizeRender;
 					printf("Render culling: %s\n", game->cam.optimizeRender ? "ON" : "OFF");
+				}
+				if(event.key.keysym.scancode == SDL_SCANCODE_ESCAPE){
+					game->state = GAME;
 				}
 			}
 			if(event.key.keysym.scancode < SDL_NUM_SCANCODES)
@@ -128,69 +147,71 @@ void gameUpdate(Game* game, float dt){
 }
 
 void gameRender(Game *game){
-	switch(game->state){
-		case 0:
-			startScreen(game);
-			break;
-		case 1:
-			gameScreen(game);
-			break;
-		case 2:
-			endScreen(game);
-			break;
-		default:
-			startScreen(game);
-			break;
-	}
-	// // Clear screen with a background color
-	// SDL_SetRenderDrawColor(game->renderer, 0, 155, 90, 255);
-	// SDL_RenderClear(game->renderer);
-	//
-	// // RENDER HERE
-	// 	tilemapRender(&tm, game->renderer, &game->cam);
-	// 	playerRender(&player, game->renderer, &game->cam);
-	// 	/* debug overlay drawing: show object polygons/rects and MTV */
-	// 	/* Show the actual collision box (smaller, centered) */
-	// 	int collisionOffsetX = (player.width - player.collisionWidth) / 2;
-	// 	int collisionOffsetY = (player.height - player.collisionHeight) / 2;
-	// 	SDL_Rect pr = {
-	// 		(int)player.x + collisionOffsetX, 
-	// 		(int)player.y + collisionOffsetY, 
-	// 		player.collisionWidth, 
-	// 		player.collisionHeight
-	// 	};
-	// 	if(game->showDebug){
-	// 		tilemapDebugRender(&tm, game->renderer, &pr, &game->cam);
-	// 	}
-	//
-	// 	/* Small on-screen indicators for toggle states (top-left) */
-	// 	{
-	// 		SDL_Rect r1 = {8, 8, 12, 12}; /* smoothing */
-	// 		SDL_Rect r2 = {8 + 16, 8, 12, 12}; /* debug */
-	// 		SDL_Rect r3 = {8 + 32, 8, 12, 12}; /* culling */
-	// 		/* smoothing */
-	// 		if(game->cam.smoothingEnabled) SDL_SetRenderDrawColor(game->renderer, 0, 200, 0, 255);
-	// 		else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
-	// 		SDL_RenderFillRect(game->renderer, &r1);
-	// 		/* debug */
-	// 		if(game->showDebug) 
-	// 			SDL_SetRenderDrawColor(game->renderer, 0, 200, 200, 255);
-	// 		else
-	// 			SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
-	// 		SDL_RenderFillRect(game->renderer, &r2);
-	// 		/* culling */
-	// 		if(game->cam.optimizeRender) 
-	// 			SDL_SetRenderDrawColor(game->renderer, 200, 200, 0, 255);
-	// 		else
-	// 			SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
-	// 		SDL_RenderFillRect(game->renderer, &r3);
-	// 		/* draw borders */
-	// 		SDL_SetRenderDrawColor(game->renderer, 0, 0, 0, 255);
-	// 		SDL_RenderDrawRect(game->renderer, &r1);
-	// 		SDL_RenderDrawRect(game->renderer, &r2);
-	// 		SDL_RenderDrawRect(game->renderer, &r3);
-	// 	}
-	// 	//-----------
+	// switch(game->state){
+	// 	case 0:
+	// 		startScreen(game);
+	// 		break;
+	// 	case 1:
+	// 		gameScreen(game, tm, player);
+	// 		break;
+	// 	case 2:
+	// 		endScreen(game);
+	// 		break;
+	// 	default:
+	// 		startScreen(game);
+	// 		break;
+	// }
+
+
+	// Clear screen with a background color
+	SDL_SetRenderDrawColor(game->renderer, 0, 155, 90, 255);
+	SDL_RenderClear(game->renderer);
+
+	// RENDER HERE
+		tilemapRender(&tm, game->renderer, &game->cam);
+		playerRender(&player, game->renderer, &game->cam);
+		/* debug overlay drawing: show object polygons/rects and MTV */
+		/* Show the actual collision box (smaller, centered) */
+		int collisionOffsetX = (player.width - player.collisionWidth) / 2;
+		int collisionOffsetY = (player.height - player.collisionHeight) / 2;
+		SDL_Rect pr = {
+			(int)player.x + collisionOffsetX, 
+			(int)player.y + collisionOffsetY, 
+			player.collisionWidth, 
+			player.collisionHeight
+		};
+		if(game->showDebug){
+			tilemapDebugRender(&tm, game->renderer, &pr, &game->cam);
+		}
+
+		/* Small on-screen indicators for toggle states (top-left) */
+		{
+			SDL_Rect r1 = {8, 8, 12, 12}; /* smoothing */
+			SDL_Rect r2 = {8 + 16, 8, 12, 12}; /* debug */
+			SDL_Rect r3 = {8 + 32, 8, 12, 12}; /* culling */
+			/* smoothing */
+			if(game->cam.smoothingEnabled) SDL_SetRenderDrawColor(game->renderer, 0, 200, 0, 255);
+			else SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			SDL_RenderFillRect(game->renderer, &r1);
+			/* debug */
+			if(game->showDebug) 
+				SDL_SetRenderDrawColor(game->renderer, 0, 200, 200, 255);
+			else
+				SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			SDL_RenderFillRect(game->renderer, &r2);
+			/* culling */
+			if(game->cam.optimizeRender) 
+				SDL_SetRenderDrawColor(game->renderer, 200, 200, 0, 255);
+			else
+				SDL_SetRenderDrawColor(game->renderer, 80, 80, 80, 255);
+			SDL_RenderFillRect(game->renderer, &r3);
+			/* draw borders */
+			SDL_SetRenderDrawColor(game->renderer, 0, 0, 0, 255);
+			SDL_RenderDrawRect(game->renderer, &r1);
+			SDL_RenderDrawRect(game->renderer, &r2);
+			SDL_RenderDrawRect(game->renderer, &r3);
+		}
+		//-----------
 		
 		SDL_RenderPresent(game->renderer);
 }
@@ -208,9 +229,22 @@ void gameRun(Game *game){
  		if(deltaTime > 0.016f)
  			deltaTime = 0.016f;
 
-		gameRender(game);
-		gameUpdate(game, deltaTime);
 		gameHandleEvent(game);
+
+		switch (game->state) {
+			case 0:
+				startScreen(game);
+				SDL_RenderPresent(game->renderer);
+				break;
+			case 1:
+				gameRender(game);
+				gameUpdate(game, deltaTime);
+				break;
+			case 2:
+				endScreen(game);
+				SDL_RenderPresent(game->renderer);
+				break;
+		}
 			
  		// gameHandleEvent(game);
  		//
@@ -233,6 +267,10 @@ void gameClean(Game *game){
 	tilemapClean(&tm);
 	playerClean(&player);
 	animatorFree(&a);
+	if(game->font){
+		free(game->font);
+		game->font = NULL;
+	}
 	SDL_DestroyWindow(game->window);
 	SDL_DestroyRenderer(game->renderer);
 	IMG_Quit();
