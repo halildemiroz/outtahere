@@ -39,7 +39,7 @@ file(GLOB SOURCES "src/*.c")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 # Link SDL2, SDL2_image, SDL2_ttf, and libtmx
-target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES} ${LIBTMX_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES} SDL2_image SDL2_ttf ${LIBTMX_LIBRARIES} m)
 
 # macOS-specific settings
 if(APPLE)
