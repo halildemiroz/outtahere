@@ -1,9 +1,25 @@
+#include "SDL_events.h"
 #include "SDL_render.h"
+#include "game.h"
 #include <SDL2/SDL_error.h>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_ttf.h>
 #include <menu.h>
 #include <stdio.h>
+
+void menuHandleInput(Game* game){
+	
+	int x,y;
+
+	SDL_Event e;
+	while(SDL_PollEvent(&e)){
+		if(e.type == SDL_MOUSEBUTTONDOWN)
+			SDL_GetMouseState(&x, &y);
+	}
+
+	if((x > MENU_START_X - MENU_WIDTH && x < MENU_START_X + MENU_WIDTH) && (y > MENU_START_Y - MENU_HEIGHT && y < MENU_START_Y + MENU_HEIGHT)) game->state = GAME;
+
+}
 
 void loadScreenAssets(Game* game){
 
@@ -20,11 +36,14 @@ void loadScreenAssets(Game* game){
 }
 
 void startScreen(Game *game){
-	SDL_SetRenderDrawColor(game->renderer, 20, 20, 20, 255);
-    SDL_RenderClear(game->renderer);
 
-    SDL_Rect startRect = {200,200,200,200};
-    SDL_RenderCopy(game->renderer, game->font->startTexture, NULL, &startRect);
+	SDL_SetRenderDrawColor(game->renderer, 20, 20, 20, 255);
+    
+	SDL_RenderClear(game->renderer);
+
+    SDL_Rect startRect = {(SCREEN_WIDTH / 2) - 100,(SCREEN_HEIGHT / 2) - 100,200,200};
+
+	SDL_RenderCopy(game->renderer, game->font->startTexture, NULL, &startRect);
 }
 
 void gameScreen(Game* game, Tilemap tm, Player player){
@@ -85,7 +104,7 @@ void endScreen(Game *game){
 	    SDL_SetRenderDrawColor(game->renderer, 20, 20, 20, 255);
     SDL_RenderClear(game->renderer);
 
-    SDL_Rect endRect = {200,200,200,200};
+    SDL_Rect endRect = {(SCREEN_HEIGHT / 2) - 100,(SCREEN_WIDTH / 2) - 100,200,200};
     SDL_RenderCopy(game->renderer, game->font->endTexture, NULL, &endRect);
 
     SDL_RenderPresent(game->renderer);	

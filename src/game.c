@@ -94,7 +94,8 @@ int gameInit(Game* game, const char* title){
 }
 
 void gameHandleEvent(Game* game){
-	playerHandleInput(&player, game);
+	if(game->state == START || game->state == END) menuHandleInput(game);
+	if(game->state == GAME) playerHandleInput(&player, game);
 	SDL_Event event;
 	// Process all pending SDL events and update keyboard state
 	while(SDL_PollEvent(&event)){

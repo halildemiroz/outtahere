@@ -14,12 +14,11 @@
 #define GRAVITY 800.0f
 
 typedef enum{
-
 	NORTH = 0, WEST, SOUTH, EAST
-}	Direction;
+} Direction;
 
 typedef enum{
-	IDLE = 0, WALK, RUN, JUMP
+	IDLE = 0, WALK, RUN, JUMP, HOLD
 } State;
 
 typedef struct{
@@ -41,5 +40,7 @@ void playerClean(Player* player);
 void playerUpdate(Player* player, Game* game, float dt);
 void playerRender(Player* player, SDL_Renderer* renderer, Camera* cam);
 void playerHandleInput(Player* player, Game* game);
+
+void playerHold(Player* player, Game* game);
 
 #endif

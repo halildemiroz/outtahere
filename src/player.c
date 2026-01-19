@@ -6,10 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void playerHold(Player* player, Game* game){
+	
+}
+
 int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 	if(!player) return -1;
 	player->x = 0;
-	player->y = 640/*- 32 - PLAYER_HEIGHT*/;
+	player->y = 640;
 	player->vx = 0.0f;
 	player->vy = 0.0f;
 	player->width = PLAYER_WIDTH;
@@ -25,7 +29,6 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 	animatorInit(&player->animator);
 	char path[512];
 	int loaded = 0;
-	/* try two likely relative paths so assets are found from different working directories */
 	switch (player->state) {
 		case IDLE:
 			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/idle.png", PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, 4, 0.12f, true) == 0)
@@ -37,6 +40,11 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 			break;
 		case RUN:
 			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/run.png", PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, 6, 0.12f, true) == 0)
+				loaded = 1;
+			break;
+		case HOLD:
+			/* Reuse IDLE for now since we don't have a hold sprite yet */
+			if(animatorLoadSpritesheet(&player->animator, renderer, "../assets/players/main/idle.png", PLAYER_WIDTH / 2, PLAYER_HEIGHT / 2, 4, 0.12f, true) == 0)
 				loaded = 1;
 			break;
 		 default:
@@ -54,29 +62,24 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 void playerHandleInput(Player *player, Game *game){
 	int tempDustX, tempDustY;
 
-	/* determine movement input and desired state */
 	bool left = game->keys[SDL_SCANCODE_A];
 	bool right = game->keys[SDL_SCANCODE_D];
 	bool runKey = game->keys[SDL_SCANCODE_LSHIFT];
 	bool jumpKey = game->keys[SDL_SCANCODE_SPACE];
 	
-	/* default to standing or maintain jumping state */
 	player->vx = 0.0f;
-	State desired;
+	State desired = player->state;
 	if (player->isOnGround) {
 		desired = IDLE;
 	}
 	
 	if(left || right){
-		/* set movement speed but only change animation if on ground */
 		float speed;
 		if(player->isOnGround) {
 			if(runKey) desired = RUN;
-			else desired = WALK; /* walking uses the walk animation */
+			else desired = WALK;
 			speed = (desired == RUN) ? RUN_SPEED : WALK_SPEED;
 		} else {
-			/* Keep jump animation while moving horizontally in air */
-			/* DO NOT change the desired state - keep it as JUMP */
 			speed = WALK_SPEED;
 		}
 		
@@ -89,15 +92,12 @@ void playerHandleInput(Player *player, Game *game){
 		}
 	}
 
-	/* jump */
 	if(jumpKey && player->isOnGround){
-		/* Apply jump velocity immediately but set jump state */
 		player->vy = JUMP_SPEED;
 		player->isOnGround = false;
 	}
 
 
-	/* swap animations only when state actually changes */
 	if(desired != player->state || player->state == IDLE){
 		switch(desired){
 			case IDLE:
@@ -108,6 +108,9 @@ void playerHandleInput(Player *player, Game *game){
 				break;
 			case RUN:
 				animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/run.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 6, 0.12f, true);
+				break;
+			case HOLD:
+				animatorLoadSpritesheet(&player->animator, game->renderer, "../assets/players/main/idle.png", PLAYER_WIDTH / 1.5f, PLAYER_HEIGHT / 1.5f, 4, 0.12f, true);
 				break;
 			default:
 				break;
@@ -121,7 +124,6 @@ void playerRender(Player *player, SDL_Renderer *renderer, Camera* cam){
 	int drawX = (int)player->x - (cam ? cam->x : 0);
 	int drawY = (int)player->y - (cam ? cam->y : 0);
 	
-	/* prefer animator rendering when available */
 	if(player->animator.texture){
 		SDL_RendererFlip flip = (player->direction == 1) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
 	
@@ -139,16 +141,37 @@ void playerRender(Player *player, SDL_Renderer *renderer, Camera* cam){
 }
 
 void playerUpdate(Player *player, Game *game, float dt){
-	/* Update animator timing */
 	animatorUpdate(&player->animator, dt);
 
-	/* Axis-separated collision: handle horizontal then vertical */
+	// HOLD MECHANIC
+	// if(game->tilemap && !player->isOnGround){
+	// 	int collisionOffsetX = (player->width - player->collisionWidth) / 2;
+	// 	int collisionOffsetY = (player->height - player->collisionHeight) / 2;
+	//
+	// 	SDL_Rect checkLeft = {
+	// 		(int)player->x + collisionOffsetX - 1,
+	// 		(int)player->y + collisionOffsetY,
+	// 		1,
+	// 		player->collisionHeight
+	// 	};
+	// 	SDL_Rect checkRight = {
+	// 		(int)player->x + collisionOffsetX + player->collisionWidth,
+	// 		(int)player->y + collisionOffsetY,
+	// 		1,
+	// 		player->collisionHeight
+	// 	};
+	//
+	// 	if(tilemapCheckCollision(game->tilemap, &checkLeft) || 
+	// 	   tilemapCheckCollision(game->tilemap, &checkRight)){
+	// 		player->state = HOLD;
+	// 		player->vy = 0.0f;
+	// 	}
+	// }
+
 	if(game->tilemap){
-		/* Calculate collision box offset to center it within the sprite */
 		int collisionOffsetX = (player->width - player->collisionWidth) / 2;
 		int collisionOffsetY = (player->height - player->collisionHeight) / 2;
 		
-		/* Horizontal move */
 		float newX = player->x + player->vx * dt;
 		SDL_Rect hr = {
 			(int)newX + collisionOffsetX, 
@@ -160,10 +183,9 @@ void playerUpdate(Player *player, Game *game, float dt){
 			player->x = newX;
 		}
 
-		/* Apply gravity */
-		player->vy += GRAVITY * dt;
+		if(player->state != HOLD)
+			player->vy += GRAVITY * dt;
 
-		/* Vertical move */
 		float newY = player->y + player->vy * dt;
 		SDL_Rect vr = {
 			(int)player->x + collisionOffsetX, 
@@ -171,27 +193,21 @@ void playerUpdate(Player *player, Game *game, float dt){
 			player->collisionWidth, 
 			player->collisionHeight
 		};
-		/* Check for collision and also fetch the object we hit (if any) */
 		TileObject* hitObj = (TileObject*)NULL;
 		if(!tilemapCheckCollision(game->tilemap, &vr)){
 			player->y = newY;
 			player->isOnGround = false;
 		} else {
-			/* If we hit an object (rect or polygon), resolve against it; otherwise fall back to tile snapping */
 			hitObj = tilemapGetCollisionObject(game->tilemap, &vr);
 			if(hitObj){
 				if(hitObj->hasPolygon){
-					/* Use SAT-based MTV to resolve against polygon geometry */
 					float nx=0.0f, ny=0.0f, ov=0.0f;
 					if(tilemapPolygonRectMTV(hitObj, &vr, &nx, &ny, &ov)){
-						/* push player out along MTV */
 						player->x += nx * ov;
 						player->y += ny * ov;
-						/* determine if we landed on top: normal points from polygon -> rect (player),
-					   so an upward normal means ny < 0 (screen y downwards) */
+
 						if(ny < -0.5f){
-							/* To avoid 'standing on air' when the MTV is tiny or polygon slope is tricky,
-						   compute polygon top at player's horizontal span and snap only if close */
+
 							float objTop = FLT_MAX;
 							for(int pi=0; pi < hitObj->polygon.pointCount; pi++){
 								float py = hitObj->rect.y + hitObj->polygon.points[pi*2 + 1];
@@ -200,25 +216,19 @@ void playerUpdate(Player *player, Game *game, float dt){
 							float playerBottom = player->y + player->height;
 							float dist = playerBottom - objTop;
 							if(fabsf(dist) <= 3.0f){
-								/* snap exactly to polygon top */
 								player->y = objTop - player->height;
 								player->vy = 0.0f;
 								player->isOnGround = true;
 							} else {
-								/* MTV pushed player but not close enough to count as on-ground */
 								player->isOnGround = false;
 							}
 						} else if(ny > 0.5f){
-							/* hit from below */
 							player->vy = 0.0f;
 							player->isOnGround = false;
 						} else {
-							/* primarily horizontal normal: cancel horizontal velocity to prevent sticking */
 							player->vx = 0.0f;
-							/* leave vy as-is or zero small component */
 						}
 					} else {
-						/* fallback: if SAT didn't report intersection (shouldn't happen), treat as rect */
 						int overlapLeft = (vr.x + vr.w) - hitObj->rect.x;
 						int overlapRight = (hitObj->rect.x + hitObj->rect.w) - vr.x;
 						int overlapTop = (vr.y + vr.h) - hitObj->rect.y;
@@ -240,34 +250,28 @@ void playerUpdate(Player *player, Game *game, float dt){
 						}
 					}
 				} else {
-					/* simple AABB resolution when hitting an object rect: push player out along minimal axis */
 					int overlapLeft = (vr.x + vr.w - 10) - hitObj->rect.x;
 					int overlapRight = (hitObj->rect.x + hitObj->rect.w - 10) - vr.x;
 					int overlapTop = (vr.y + vr.h) - hitObj->rect.y;
 					int overlapBottom = (hitObj->rect.y + hitObj->rect.h) - vr.y;
-					/* choose smallest overlap */
 					int minOverlap = overlapLeft;
 					if(overlapRight < minOverlap) minOverlap = overlapRight;
 					if(overlapTop < minOverlap) minOverlap = overlapTop;
 					if(overlapBottom < minOverlap) minOverlap = overlapBottom;
 
 					if(minOverlap == overlapTop){
-						/* landed on top of object */
 						player->y = hitObj->rect.y - player->height;
 						player->vy = 0.0f;
 						player->isOnGround = true;
 					} else if(minOverlap == overlapBottom){
-						/* hit the bottom of object */
 						player->y = hitObj->rect.y + hitObj->rect.h;
 						player->vy = 0.0f;
 						player->isOnGround = false;
 					} else {
-						/* horizontal penetration (rare for vertical move), do not move vertically */
 						player->vy = 0.0f;
 					}
 				}
 			} else {
-				/* fallback to tile snapping (existing behavior) */
 				int tileH = game->tilemap->map->tile_height;
 				int topTile = (int)floor(newY / tileH);
 				int bottomTile = (int)floor((newY + player->height - 1) / tileH);
@@ -284,7 +288,6 @@ void playerUpdate(Player *player, Game *game, float dt){
 			}
 		}
 	} else {
-		/* Fallback: no tilemap, use simple gravity + ground */
 		player->x += player->vx * dt;
 		player->vy += GRAVITY * dt;
 		player->y += player->vy * dt;
@@ -296,7 +299,6 @@ void playerUpdate(Player *player, Game *game, float dt){
 		}
 	}
 
-	/* World bounds: use tilemap pixel dimensions when available */
 	int worldW = SCREEN_WIDTH;
 	int worldH = SCREEN_HEIGHT;
 	if(game && game->tilemap && game->tilemap->map){
