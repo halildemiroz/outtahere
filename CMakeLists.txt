@@ -35,4 +35,10 @@ add_executable(outtahere
 	include/tilemap.h
 	)
 
-target_link_libraries(outtahere sdl2 sdl2_image sdl2_ttf tmx m)
+target_link_libraries(outtahere PRIVATE
+	SDL2
+	SDL2_image
+	SDL2_ttf
+    tmx
+    m
+)

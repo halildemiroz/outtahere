@@ -1,3 +1,8 @@
 #outtahere
 
-its gonna work on macos only just for now but im gonna make it comppatible with windows and linux too when i have the time 
+its gonna work on macos only just for now but im gonna make it comppatible with windows and linux too when i have the time
+
+## Tiled collectibles
+
+Add a boolean custom property named `collectible` to a tile in your TSX tileset.
+Tiles with `collectible = true` will not collide and will disappear when the player touches them.

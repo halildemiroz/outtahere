@@ -37,6 +37,7 @@
         "Sprites.tsx"
     ],
     "project": "outtahere.tiled-project",
+    "property.type": "bool",
     "recentFiles": [
         "Sprites.tsx",
         "tileset.tsx",

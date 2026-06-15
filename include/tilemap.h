@@ -3,6 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include <tmx.h>
+#include <stdbool.h>
 
 #include "camera.h"
 
@@ -30,15 +31,6 @@ typedef struct Tilemap {
 	tmx_map* map;
 	SDL_Texture** tileset;
 	int tilesetCount;
-
-	/* collision objects loaded from object layers */
-	TileObject* objects;
-	int objectCount;
-
-	/* optional per-gid polygon overrides parsed from tileset <tile> collision shapes
-	   indexed by global gid (0..gidPolygonCount-1). A pointCount==0 means no polygon. */
-	TilePolygon* gidPolygons;
-	int gidPolygonCount;
 } Tilemap;
 
 int tilemapInit(Tilemap* tm, const char* filename, SDL_Renderer* renderer);
@@ -48,6 +40,9 @@ void tilemapRender(Tilemap* tm, SDL_Renderer* renderer, Camera* cam);
 void tilemapDebugRender(Tilemap* tm, SDL_Renderer* renderer, SDL_Rect* playerRect, Camera* cam);
 bool tilemapCheckCollision(Tilemap* tm, SDL_Rect* rect);
 
+/* removes collectible tiles that intersect `rect`; returns true if any were collected */
+bool tilemapCollectCollectibles(Tilemap* tm, SDL_Rect* rect, int* collectedCount);
+
 /* returns a pointer to a collision object that intersects `rect`, or NULL */
 TileObject* tilemapGetCollisionObject(Tilemap* tm, SDL_Rect* rect);
 
@@ -55,8 +50,5 @@ TileObject* tilemapGetCollisionObject(Tilemap* tm, SDL_Rect* rect);
    returns 1 if intersecting and sets (nx,ny) normalized and overlap > 0
    returns 0 if not intersecting */
 int tilemapPolygonRectMTV(const TileObject* to, const SDL_Rect* r, float* nx, float* ny, float* overlap);
-
-/* returns true if the given tile coordinate contains a non-zero gid */
-bool tilemapIsSolidAt(Tilemap* tm, int tx, int ty);
 
 #endif

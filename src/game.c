@@ -67,7 +67,7 @@ int gameInit(Game* game, const char* title){
 	tilemapInit(&tm, "../assets/tilemap/demo.tmx", game->renderer);
 	/* expose the tilemap to the game so other systems can query collisions */
 	game->tilemap = &tm;
-	playerInit(&player, game->renderer, "");
+	playerInit(&player, game->renderer);
 
 	// --------------------------
 	// TTF ----------------------
@@ -147,23 +147,6 @@ void gameUpdate(Game* game, float dt){
 }
 
 void gameRender(Game *game){
-	// switch(game->state){
-	// 	case 0:
-	// 		startScreen(game);
-	// 		break;
-	// 	case 1:
-	// 		gameScreen(game, tm, player);
-	// 		break;
-	// 	case 2:
-	// 		endScreen(game);
-	// 		break;
-	// 	default:
-	// 		startScreen(game);
-	// 		break;
-	// }
-
-
-	// Clear screen with a background color
 	SDL_SetRenderDrawColor(game->renderer, 0, 155, 90, 255);
 	SDL_RenderClear(game->renderer);
 
@@ -211,8 +194,7 @@ void gameRender(Game *game){
 			SDL_RenderDrawRect(game->renderer, &r2);
 			SDL_RenderDrawRect(game->renderer, &r3);
 		}
-		//-----------
-		
+
 		SDL_RenderPresent(game->renderer);
 }
 
@@ -244,22 +226,9 @@ void gameRun(Game *game){
 				endScreen(game);
 				SDL_RenderPresent(game->renderer);
 				break;
-		}
-			
- 		// gameHandleEvent(game);
- 		//
- 		// if(game->state == GAME_MENU){
- 		// 	menuUpdate(&menu, game);
- 		// 	menuRenderGame(&menu, &player, "./../assets/font.ttf", game->renderer);
- 		// } else if(game->state == PLAYING){
- 		// 	gameUpdate(game, deltaTime);
- 		// 	gameRender(game);
- 		// } else if(game->state == GAME_OVER){
- 		// 	menuUpdate(&menu, game);
- 		// 	menuRenderEnd(&menu, "./../assets/font.ttf", game->renderer);
- 		// }
+			}
 
- 	SDL_Delay(16);
+			SDL_Delay(16);
  	}
 }
 

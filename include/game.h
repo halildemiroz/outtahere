@@ -9,7 +9,7 @@
 
 #define SCREEN_WIDTH 920
 #define SCREEN_HEIGHT 640
-#define TILE_SIZE 16
+
 
 typedef struct{
     TTF_Font* font;
@@ -39,7 +39,7 @@ typedef struct {
  	bool showDebug; /* toggle debug overlays */
  	GameState state;
  } 	Game;
-extern Game game;
+
 
 int gameInit(Game *game, const char* name);
 

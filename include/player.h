@@ -32,10 +32,9 @@ typedef struct{
 	Animator animator;
 	Direction direction;
 	State state;
-	State lastState;
 } Player;
 
-int playerInit(Player* player, SDL_Renderer* renderer, const char* texturePath);
+int playerInit(Player* player, SDL_Renderer* renderer);
 
 void playerClean(Player* player);
 void playerUpdate(Player* player, Game* game, float dt);

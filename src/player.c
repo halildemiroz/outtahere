@@ -4,9 +4,8 @@
 #include <game.h>
 #include <tilemap.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
+int playerInit(Player *player, SDL_Renderer *renderer){
 	if(!player) return -1;
 	player->x = 0;
 	player->y = 640/*- 32 - PLAYER_HEIGHT*/;
@@ -20,10 +19,8 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 	player->texture = NULL;
 	player->direction = EAST;
 	player->state = RUN;
-	player->lastState = (State)-1;
 
 	animatorInit(&player->animator);
-	char path[512];
 	int loaded = 0;
 	/* try two likely relative paths so assets are found from different working directories */
 	switch (player->state) {
@@ -52,21 +49,18 @@ int playerInit(Player *player, SDL_Renderer *renderer, const char* texturePath){
 }
 
 void playerHandleInput(Player *player, Game *game){
-	int tempDustX, tempDustY;
+
 
 	/* determine movement input and desired state */
 	bool left = game->keys[SDL_SCANCODE_A];
 	bool right = game->keys[SDL_SCANCODE_D];
 	bool runKey = game->keys[SDL_SCANCODE_LSHIFT];
 	bool jumpKey = game->keys[SDL_SCANCODE_SPACE];
-	
+
 	/* default to standing or maintain jumping state */
 	player->vx = 0.0f;
-	State desired;
-	if (player->isOnGround) {
-		desired = IDLE;
-	}
-	
+	State desired = player->isOnGround ? IDLE : JUMP;
+
 	if(left || right){
 		/* set movement speed but only change animation if on ground */
 		float speed;
@@ -79,7 +73,7 @@ void playerHandleInput(Player *player, Game *game){
 			/* DO NOT change the desired state - keep it as JUMP */
 			speed = WALK_SPEED;
 		}
-		
+
 		if(left){
 			player->vx = -speed;
 			player->direction = WEST;
@@ -120,11 +114,11 @@ void playerHandleInput(Player *player, Game *game){
 void playerRender(Player *player, SDL_Renderer *renderer, Camera* cam){
 	int drawX = (int)player->x - (cam ? cam->x : 0);
 	int drawY = (int)player->y - (cam ? cam->y : 0);
-	
+
 	/* prefer animator rendering when available */
 	if(player->animator.texture){
 		SDL_RendererFlip flip = (player->direction == 1) ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
-	
+
 		animatorRender(&player->animator, renderer, drawX, drawY, player->width, player->height, flip);
 		return;
 	}
@@ -147,13 +141,13 @@ void playerUpdate(Player *player, Game *game, float dt){
 		/* Calculate collision box offset to center it within the sprite */
 		int collisionOffsetX = (player->width - player->collisionWidth) / 2;
 		int collisionOffsetY = (player->height - player->collisionHeight) / 2;
-		
+
 		/* Horizontal move */
 		float newX = player->x + player->vx * dt;
 		SDL_Rect hr = {
-			(int)newX + collisionOffsetX, 
-			(int)player->y + collisionOffsetY, 
-			player->collisionWidth, 
+			(int)newX + collisionOffsetX,
+			(int)player->y + collisionOffsetY,
+			player->collisionWidth,
 			player->collisionHeight
 		};
 		if(!tilemapCheckCollision(game->tilemap, &hr)){
@@ -166,9 +160,9 @@ void playerUpdate(Player *player, Game *game, float dt){
 		/* Vertical move */
 		float newY = player->y + player->vy * dt;
 		SDL_Rect vr = {
-			(int)player->x + collisionOffsetX, 
-			(int)newY + collisionOffsetY, 
-			player->collisionWidth, 
+			(int)player->x + collisionOffsetX,
+			(int)newY + collisionOffsetY,
+			player->collisionWidth,
 			player->collisionHeight
 		};
 		/* Check for collision and also fetch the object we hit (if any) */
@@ -306,6 +300,21 @@ void playerUpdate(Player *player, Game *game, float dt){
 	if(player->x < 0) player->x = 0;
 	if(player->x + player->width > worldW) player->x = worldW - player->width;
 	if(player->y + player->height > worldH) player->y = worldH - player->height;
+
+	if(game && game->tilemap && game->tilemap->map){
+		int collisionOffsetX = (player->width - player->collisionWidth) / 2;
+		int collisionOffsetY = (player->height - player->collisionHeight) / 2;
+		SDL_Rect collectRect = {
+			(int)player->x + collisionOffsetX,
+			(int)player->y + collisionOffsetY,
+			player->collisionWidth,
+			player->collisionHeight
+		};
+		int collected = 0;
+		if(tilemapCollectCollectibles(game->tilemap, &collectRect, &collected) && collected > 0){
+			printf("Collected %d collectible(s)\n", collected);
+		}
+	}
 }
 
 void playerClean(Player *player){
