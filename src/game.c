@@ -11,6 +11,83 @@ static Tilemap tm;
 static Player player;
 static Animator a;
 
+static const char *levelPaths[] = {
+	"../assets/tilemap/demo.tmx",
+	"../assets/tilemap/level2.tmx"
+};
+static const int levelCount = (int)(sizeof(levelPaths) / sizeof(levelPaths[0]));
+static int currentLevel = 0;
+static bool lastInteractKey = false;
+
+static bool findSpawnPoint(tmx_map *map, float *spawnX, float *spawnY){
+	if(!map || !spawnX || !spawnY) return false;
+
+	const char *spawnLayerNames[] = {"spawn", "spawns", "player_spawn", "player-spawn"};
+	for(size_t i = 0; i < sizeof(spawnLayerNames) / sizeof(spawnLayerNames[0]); i++){
+		tmx_layer *layer = tmx_find_layer_by_name(map, spawnLayerNames[i]);
+		if(layer && layer->type == L_OBJGR && layer->content.objgr && layer->content.objgr->head){
+			tmx_object *fallbackObj = layer->content.objgr->head;
+			for(tmx_object *obj = layer->content.objgr->head; obj; obj = obj->next){
+				if(obj->obj_type == OT_POINT){
+					*spawnX = (float)obj->x;
+					*spawnY = (float)obj->y;
+					return true;
+				}
+			}
+			*spawnX = (float)fallbackObj->x;
+			*spawnY = (float)fallbackObj->y;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void resetPlayerSpawn(Player *p, float spawnX, float spawnY){
+	if(!p) return;
+	p->x = spawnX;
+	p->y = spawnY;
+	p->vx = 0.0f;
+	p->vy = 0.0f;
+	p->isOnGround = true;
+	p->direction = EAST;
+}
+
+static bool loadLevel(Game *game, int levelIndex){
+	if(!game || levelIndex < 0 || levelIndex >= levelCount) return false;
+
+	tilemapClean(&tm);
+	if(tilemapInit(&tm, levelPaths[levelIndex], game->renderer) != 0){
+		fprintf(stderr, "Failed to load level %d: %s\n", levelIndex, levelPaths[levelIndex]);
+		return false;
+	}
+
+	game->tilemap = &tm;
+	float spawnX = 0.0f;
+	float spawnY = 640.0f;
+	if(findSpawnPoint(tm.map, &spawnX, &spawnY)){
+		printf("Spawn point found: %.2f, %.2f\n", spawnX, spawnY);
+	} else {
+		printf("No spawn object found; using fallback spawn.\n");
+	}
+	resetPlayerSpawn(&player, spawnX, spawnY);
+	game->cam.x = 0;
+	game->cam.y = 0;
+	game->cam.fx = 0.0f;
+	game->cam.fy = 0.0f;
+	currentLevel = levelIndex;
+	printf("Loaded level %d: %s\n", currentLevel + 1, levelPaths[currentLevel]);
+	return true;
+}
+
+static bool advanceToNextLevel(Game *game){
+	if(currentLevel + 1 >= levelCount){
+		printf("No more levels yet.\n");
+		return false;
+	}
+	return loadLevel(game, currentLevel + 1);
+}
+
 int gameInit(Game* game, const char* title){
 	// Check if SDL initialized
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)){
@@ -64,10 +141,12 @@ int gameInit(Game* game, const char* title){
 	game->showDebug = false;
 
 	// OTHER INITIALIZATIONS HERE
-	tilemapInit(&tm, "../assets/tilemap/demo.tmx", game->renderer);
 	/* expose the tilemap to the game so other systems can query collisions */
 	game->tilemap = &tm;
 	playerInit(&player, game->renderer);
+	if(!loadLevel(game, 0)){
+		return -1;
+	}
 
 	// --------------------------
 	// TTF ----------------------
@@ -134,6 +213,16 @@ void gameHandleEvent(Game* game){
 
 void gameUpdate(Game* game, float dt){
 	playerUpdate(&player, game, dt);
+
+	SDL_Rect interactionRect = {(int)player.x, (int)player.y, player.width, player.height};
+	bool interactKeyDown = game->keys[SDL_SCANCODE_E];
+	if(interactKeyDown && !lastInteractKey && game->tilemap && tilemapTouchingDoor(game->tilemap, &interactionRect)){
+		if(advanceToNextLevel(game)){
+			lastInteractKey = interactKeyDown;
+			return;
+		}
+	}
+	lastInteractKey = interactKeyDown;
 
 	// Update camera to follow player
 	int mapW = SCREEN_WIDTH;

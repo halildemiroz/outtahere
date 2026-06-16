@@ -11,4 +11,9 @@
    <property name="col" value="0"/>
   </properties>
  </tile>
+ <tile id="80">
+  <properties>
+   <property name="door" type="bool" value="true"/>
+  </properties>
+ </tile>
 </tileset>

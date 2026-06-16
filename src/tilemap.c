@@ -57,9 +57,13 @@ static bool tileIsCollectible(const tmx_tile *tile){
 	return tileHasPropertyBool(tile, "collectible") || tileHasPropertyBool(tile, "collectable") || tileHasPropertyBool(tile, "coin");
 }
 
+static bool tileIsDoor(const tmx_tile *tile){
+	return tileHasPropertyBool(tile, "door");
+}
+
 static bool layerShouldBeIgnored(const char *name){
 	if(!name) return false;
-	const char *ignored[] = TILEMAP_IGNORE_LAYER_NAMES;
+	const char *ignored[] = {"background", "bg", "decoration", "spawn"};
 	for(size_t i = 0; i < sizeof(ignored) / sizeof(ignored[0]); i++){
 		if(strstr(name, ignored[i])) return true;
 	}
@@ -365,7 +369,7 @@ static bool findCollisionInLayerList(Tilemap *tm, tmx_layer *layer, const SDL_Re
 					int tileX = (x * tw) + layer->offsetx;
 					int tileY = (y * th) + layer->offsety;
 					tmx_tile *tile = (gid < tm->map->tilecount) ? tm->map->tiles[gid] : NULL;
-					if(tileIsCollectible(tile)) continue;
+					if(tileIsCollectible(tile) || tileIsDoor(tile)) continue;
 
 					if(tile && tile->collision){
 						for(tmx_object *obj = tile->collision; obj; obj = obj->next){
@@ -653,6 +657,53 @@ bool tilemapCollectCollectibles(Tilemap *tm, SDL_Rect *rect, int *collectedCount
 	}
 
 	return collectedAny;
+}
+
+bool tilemapTouchingDoor(Tilemap *tm, SDL_Rect *rect){
+	if(!tm || !tm->map || !rect) return false;
+
+	tmx_layer *layer = tm->map->ly_head;
+	while(layer){
+		if(!layer->visible){
+			layer = layer->next;
+			continue;
+		}
+
+		if(layer->type == L_LAYER && !layerShouldBeIgnored(layer->name)){
+			int tw = (int)tm->map->tile_width;
+			int th = (int)tm->map->tile_height;
+			int startX = (int)floorf((float)rect->x / (float)tw) - 1;
+			int startY = (int)floorf((float)rect->y / (float)th) - 1;
+			int endX = (int)floorf((float)(rect->x + rect->w - 1) / (float)tw) + 1;
+			int endY = (int)floorf((float)(rect->y + rect->h - 1) / (float)th) + 1;
+
+			if(startX < 0) startX = 0;
+			if(startY < 0) startY = 0;
+			if(endX >= (int)tm->map->width) endX = (int)tm->map->width - 1;
+			if(endY >= (int)tm->map->height) endY = (int)tm->map->height - 1;
+
+			for(int y = startY; y <= endY; y++){
+				for(int x = startX; x <= endX; x++){
+					unsigned int idx = (unsigned int)(y * tm->map->width + x);
+					unsigned gid = layer->content.gids[idx] & TMX_FLIP_BITS_REMOVAL;
+					if(gid == 0) continue;
+
+					tmx_tile *tile = (gid < tm->map->tilecount) ? tm->map->tiles[gid] : NULL;
+					if(!tileIsDoor(tile)) continue;
+
+					int tileX = (x * tw) + layer->offsetx;
+					int tileY = (y * th) + layer->offsety;
+					if(tileIntersectsRect(tile, tileX, tileY, tw, th, rect)){
+						return true;
+					}
+				}
+			}
+		}
+
+		layer = layer->next;
+	}
+
+	return false;
 }
 
 TileObject* tilemapGetCollisionObject(Tilemap* tm, SDL_Rect* rect){

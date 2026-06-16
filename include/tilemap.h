@@ -43,6 +43,9 @@ bool tilemapCheckCollision(Tilemap* tm, SDL_Rect* rect);
 /* removes collectible tiles that intersect `rect`; returns true if any were collected */
 bool tilemapCollectCollectibles(Tilemap* tm, SDL_Rect* rect, int* collectedCount);
 
+/* returns true if the player rectangle overlaps a door tile */
+bool tilemapTouchingDoor(Tilemap* tm, SDL_Rect* rect);
+
 /* returns a pointer to a collision object that intersects `rect`, or NULL */
 TileObject* tilemapGetCollisionObject(Tilemap* tm, SDL_Rect* rect);
 
